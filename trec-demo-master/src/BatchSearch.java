@@ -22,7 +22,7 @@ import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TopDocs;
-import  	;
+import org.apache.lucene.search.similarities.*;
 import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.util.Version;
 import java.util.Date;
@@ -249,12 +249,12 @@ public class BatchSearch {
 				continue;
 			}
 			seen.put(docno, docno);
-			""" 
+			/**
 			this is print
 			
-			"""
+			**/
 			// <line> .=. <target> qid:<qid> <feature>:<value> <feature>:<value> ... <feature>:<value> # <info>
-			System.out.println("qid":qid+"1:"+tf+"2:"+idf...+"#"+"docno = "docno+" "+i+" "+hits[i].score+" "+runtag);
+			//System.out.println("qid":qid+"1:"+tf+"2:"+idf...+"#"+"docno = "docno+" "+i+" "+hits[i].score+" "+runtag);
 			System.out.println("	--> Title field: " + doc.get("title"));
 
 		}
