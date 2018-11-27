@@ -223,7 +223,16 @@ public class BatchSearch {
 		 * booleanQuery.add(query);
 		 *
 		*****/
-
+		
+		/** USED FOR GENERATING RANKLIB FILE **/
+		// Can be 0, 1 or 2
+		int relevance_label = 0;
+		int query_id = 0;
+		double feature_1_TF = 0.0000;
+		double feature_2_IDF = 0.0000;
+		double feature_3_TF_IDF = 0.0000;
+		double feature_4_BM25 = 0.0000;
+		double feature_5_DL = 0.0000; // Document length
 
 		// Represents hits returned by IndexSearcher.search(Query,int).
 
@@ -250,11 +259,17 @@ public class BatchSearch {
 			}
 			seen.put(docno, docno);
 			/**
-			this is print
-			
+			THIS IS PRINT
 			**/
 			// <line> .=. <target> qid:<qid> <feature>:<value> <feature>:<value> ... <feature>:<value> # <info>
-			//System.out.println("qid":qid+"1:"+tf+"2:"+idf...+"#"+"docno = "docno+" "+i+" "+hits[i].score+" "+runtag);
+			System.out.println(relevance_label + " qid:" + query_id +
+					" 1:" + feature_1_TF +
+					" 2:" + feature_2_IDF +
+					" 3:" + feature_3_TF_IDF + 
+					" 4:" + feature_4_BM25 +
+					" 5:" + feature_5_DL + 
+					" #" +
+					"docid = "+ docno + " " + i + " " + hits[i].score + " " + runtag);
 			System.out.println("	--> Title field: " + doc.get("title"));
 
 		}
