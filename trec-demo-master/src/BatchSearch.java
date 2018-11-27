@@ -125,7 +125,7 @@ public class BatchSearch {
 		// while still more queries--> search the current query
 		while (true) {
 			Date start = new Date();
-			String line = in.readLine(); // read querey
+			String line = in.readLine(); // read query
 
 
 			if (line == null || line.length() == -1) { // stop if query is empty
@@ -225,9 +225,23 @@ public class BatchSearch {
 		*****/
 		
 		/** USED FOR GENERATING RANKLIB FILE **/
+		
+		/**
+		 * IndexSearcher searcher - This searcher is using the similarity function chosen by the user
+		 * Currently we are interested in the DefaultSimilarity function and the BM25Similarity function
+		 * The if-statement given below can be a way to check which similarity function is getting used
+		**/
+		
+		if (searcher.getSimilarity() == new DefaultSimilarity()) {
+			// Default similarity is used, which means we can use the DefaultSimilarity methods (See Lucene API)
+		} else if (searcher.getSimilarity() == new BM25Similarity()) {
+			// BM25 similarity is used, which means we can use the BM25Similarity methods (See Lucene API)
+		}
+		
+		
 		// Can be 0, 1 or 2
 		int relevance_label = 0;
-		int query_id = 0;
+		String query_id = qid;
 		double feature_1_TF = 0.0000;
 		double feature_2_IDF = 0.0000;
 		double feature_3_TF_IDF = 0.0000;
@@ -242,6 +256,8 @@ public class BatchSearch {
 		int numTotalHits = results.totalHits;
 		//System.out.println(query);
 
+		
+		
 		//""" set start to 0 and end to min to min hits """
 		int start = 0;
 		int end = Math.min(numTotalHits, 1000);
