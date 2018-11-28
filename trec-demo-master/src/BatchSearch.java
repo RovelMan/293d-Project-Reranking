@@ -176,15 +176,15 @@ public class BatchSearch {
 			List<double[]> features = new ArrayList<double[]>();
 			String[] simfunctions = {"default","bm25","dfr", "lm"};
 			Similarity simfn = null;
-			for (int i = 0; i < simfunct.length(); i++) {
+			for (int i = 0; i < simfunctions.length; i++) {
 				simstring = simfunctions[i];
-				if ("default".equals(simfunction.get(i))) {
+				if ("default".equals(simfunctions[i])) {
 					simfn = new ClassicSimilarity();
-				} else if ("bm25".equals(simfunction.get(i))) {
+				} else if ("bm25".equals(simfunctions[i])) {
 					simfn = new BM25Similarity();
-				} else if ("dfr".equals(simfunction(i))) {
+				} else if ("dfr".equals(simfunctions[i])) {
 					simfn = new DFRSimilarity(new BasicModelP(), new AfterEffectL(), new NormalizationH2());
-				} else if ("lm".equals(simfunction.get(i))) {
+				} else if ("lm".equals(simfunctions[i])) {
 					simfn = new LMDirichletSimilarity();
 				}
 				if (simfn == null) {
@@ -201,7 +201,7 @@ public class BatchSearch {
 			}
 			double[] tf = new double[features.get(0).length/3];
 			double[] idf = new double[features.get(0).length/3];
-			double[] tfidt = new double[features.get(0).length/3];
+			double[] tfidf = new double[features.get(0).length/3];
 
 			for (int i = 0; i < (features.get(0).length/3); i=i+3) {
 				tfidf[i] = features.get(0)[i];
@@ -318,7 +318,7 @@ public class BatchSearch {
 		return return_list;
 	}
 
-	private String tokenizeStopStem(String input, boolean stemming) throws Exception {
+	private static String tokenizeStopStem(String input, boolean stemming) throws Exception {
 
 		File file = new File("./test-data/stop_words.txt");
 		BufferedReader br = new BufferedReader(new FileReader(file));
