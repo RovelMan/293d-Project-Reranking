@@ -29,8 +29,10 @@ import datetime
         Features:
             1 TF
             2 IDF
-            3 TF*IDF
+            3 TFIDF
             4 BM25
+            5 
+            6
             5 DL - document length
 
 
@@ -68,7 +70,8 @@ def lucene():
     os.chdir(('{}').format(path_name))
     os.system('ant')
     os.system('ant IndexTREC')
-    os.system('java -cp "bin:lib/*" BatchSearch -index index/ -queries test-data/title-queries.301-450 -simfn bm25 > ../RankLib/data/letor.txt')
+    # os.system('java -cp "bin:lib/*" BatchSearch -index index/ -queries test-data/title-queries.301-450 -simfn bm25 > ../RankLib/data/letor.txt')
+    os.system('java -cp "bin:lib/*" BatchSearch -index index/ -queries test-data/title-queries.301-450 -simfn bm25')
 
 lucene()
 

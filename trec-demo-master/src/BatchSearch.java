@@ -47,7 +47,7 @@ import org.apache.lucene.index.Term;
 import org.apache.lucene.search.DoubleValuesSource;
 /** Simple command-line based search demo. */
 public class BatchSearch {
-
+	public static List<String> store_simf = new ArrayList<String>();
 	private BatchSearch() {
 	}
 
@@ -81,31 +81,12 @@ public class BatchSearch {
 			}
 		}
 
-		Similarity simfn = null;
-		if ("default".equals(simstring)) {
-			simfn = new ClassicSimilarity();
-		} else if ("bm25".equals(simstring)) {
-			simfn = new BM25Similarity();
-		} else if ("dfr".equals(simstring)) {
-			simfn = new DFRSimilarity(new BasicModelP(), new AfterEffectL(), new NormalizationH2());
-		} else if ("lm".equals(simstring)) {
-			simfn = new LMDirichletSimilarity();
-		}
-		if (simfn == null) {
-			System.out.println(usage);
-			System.out.println("Supported similarity functions:\ndefault: DefaultSimilary (tfidf)");
-			System.out.println("bm25: BM25Similarity (standard parameters)");
-			System.out.println("dfr: Divergence from Randomness model (PL2 variant)");
-			System.out.println("lm: Language model, Dirichlet smoothing");
-			System.exit(0);
-		}
+		
 
 		// creating the reader to read from our indexing
 		IndexReader reader = DirectoryReader.open(FSDirectory.open(new File(index).toPath()));
 		// creating a searcher to search through the indexes https://www.tutorialspoint.com/lucene/lucene_indexsearcher.htm
 		IndexSearcher searcher = new IndexSearcher(reader);
-		// set similarity function TODO: do actual math
-		searcher.setSimilarity(simfn);
 		// analyser to tokennize stream
 		Analyzer analyzer = new StandardAnalyzer();
 		// initiate reader of the user quereies
@@ -128,7 +109,6 @@ public class BatchSearch {
 			Date start = new Date();
 			String line = in.readLine(); // read querey
 
-
 			if (line == null || line.length() == -1) { // stop if query is empty
 				break;
 			}
@@ -148,54 +128,116 @@ public class BatchSearch {
 
 
 
-		//////// ALTERNATIVE QUERIES ////////////////////
-		//standard query. Without " " it will nonly assign first word to field, all others to contents/ field writton to Queryparser.
-		//body:dette contents:er contents:en contents:norsk contents:tittel title:dette contents:er contents:en contents:norsk contents:tittel
-		//String special = "body:" + line + " OR title:" +line;
-		//Query query = parser.parse(special);
+			//////// ALTERNATIVE QUERIES ////////////////////
+			//standard query. Without " " it will nonly assign first word to field, all others to contents/ field writton to Queryparser.
+			//body:dette contents:er contents:en contents:norsk contents:tittel title:dette contents:er contents:en contents:norsk contents:tittel
+			//String special = "body:" + line + " OR title:" +line;
+			//Query query = parser.parse(special);
 
-		//boolea query, only showing if it whole query appears in both
-		//+body:"dette er en norsk tittel" +title:"dette er en norsk tittel"
-		//String special = "body:" + '"' + line +'"' + " AND title:" + '"'+line+'"';
-		//Query query = parser.parse(special);
+			//boolea query, only showing if it whole query appears in both
+			//+body:"dette er en norsk tittel" +title:"dette er en norsk tittel"
+			//String special = "body:" + '"' + line +'"' + " AND title:" + '"'+line+'"';
+			//Query query = parser.parse(special);
 
-		//boolean query, showing results if whole query appears in ONE OR MORE of the fields
-		// body:"dette er en norsk tittel" title:"dette er en norsk tittel"
-		//String special = "body:" + '"' + line +'"' + " OR title:" + '"'+line+'"';
-		//Query query = parser.parse(special);
+			//boolean query, showing results if whole query appears in ONE OR MORE of the fields
+			// body:"dette er en norsk tittel" title:"dette er en norsk tittel"
+			//String special = "body:" + '"' + line +'"' + " OR title:" + '"'+line+'"';
+			//Query query = parser.parse(special);
 
-		//boolea query, only showing if query appears in at least title DOES NOT WORK WHEN WE DO NOT STEM CONTENT FIELD
-		//body:"dette er en norsk tittel" +title:"dette er en norsk tittel"
-		//String special = "body:" + '"' + line +'"' + " OR +title:" + '"'+line+'"';
-		//Query query = parser.parse(special);
+			//boolea query, only showing if query appears in at least title DOES NOT WORK WHEN WE DO NOT STEM CONTENT FIELD
+			//body:"dette er en norsk tittel" +title:"dette er en norsk tittel"
+			//String special = "body:" + '"' + line +'"' + " OR +title:" + '"'+line+'"';
+			//Query query = parser.parse(special);
 
 
-		//////// DEMO QUERIES- play with Occur  /////////////////////
+			//////// DEMO QUERIES- play with Occur  /////////////////////
 
-		//Query booleanQuery = parser.parse(line);
+			//Query booleanQuery = parser.parse(line);
 
-		/*
-		//result is  on form +title:"full query" body:"full query"
-		Query query1 = title_parser.parse('"'+line+ '"');
-		Query query2 = body_parser.parse('"'+line+ '"');
-		BooleanQuery booleanQuery = new BooleanQuery.Builder()
-		.add(query1, BooleanClause.Occur.SHOULD)
-		.add(query2, BooleanClause.Occur.SHOULD)
-		.build();
-		*/
+			/*
+			//result is  on form +title:"full query" body:"full query"
+			Query query1 = title_parser.parse('"'+line+ '"');
+			Query query2 = body_parser.parse('"'+line+ '"');
+			BooleanQuery booleanQuery = new BooleanQuery.Builder()
+			.add(query1, BooleanClause.Occur.SHOULD)
+			.add(query2, BooleanClause.Occur.SHOULD)
+			.build();
+			*/
 
-		//result is title: full title: query  body:full body:query
-		Query query1 = title_parser.parse(line);
-		Query query2 = body_parser.parse(line);
-		BooleanQuery booleanQuery = new BooleanQuery.Builder()
-		.add(query1, BooleanClause.Occur.SHOULD)
-		.add(query2, BooleanClause.Occur.SHOULD)
-		.build();
+			//result is title: full title: query  body:full body:query
+			Query query = parser.parse(line);
+			Query query1 = title_parser.parse(line);
+			Query query2 = body_parser.parse(line);
+			BooleanQuery booleanQuery = new BooleanQuery.Builder()
+			.add(query1, BooleanClause.Occur.SHOULD)
+			.add(query2, BooleanClause.Occur.SHOULD)
+			.build();
+			
+			List<double[]> features = new ArrayList<double[]>();
+			String[] simfunctions = {"default","bm25","dfr", "lm"};
+			Similarity simfn = null;
+			for (int i = 0; i < simfunct.length(); i++) {
+				simstring = simfunctions[i];
+				if ("default".equals(simfunction.get(i))) {
+					simfn = new ClassicSimilarity();
+				} else if ("bm25".equals(simfunction.get(i))) {
+					simfn = new BM25Similarity();
+				} else if ("dfr".equals(simfunction(i))) {
+					simfn = new DFRSimilarity(new BasicModelP(), new AfterEffectL(), new NormalizationH2());
+				} else if ("lm".equals(simfunction.get(i))) {
+					simfn = new LMDirichletSimilarity();
+				}
+				if (simfn == null) {
+					System.out.println(usage);
+					System.out.println("Supported similarity functions:\ndefault: DefaultSimilary (tfidf)");
+					System.out.println("bm25: BM25Similarity (standard parameters)");
+					System.out.println("dfr: Divergence from Randomness model (PL2 variant)");
+					System.out.println("lm: Language model, Dirichlet smoothing");
+					System.exit(0);
+				}
+				// set similarity function TODO: do actual math
+				searcher.setSimilarity(simfn);
+				features.add(doBatchSearch(in, searcher, pair[0], query, simstring));
+			}
+			double[] tf = new double[features.get(0).length()/3];
+			double[] idf = new double[features.get(0).length()/3];
+			double[] tfidt = new double[features.get(0).length()/3];
 
-		doBatchSearch(in, searcher, pair[0], booleanQuery, simstring);
-		Date end = new Date();
-		time = time + (end.getTime() - start.getTime());
-		query_count = query_count + 1;
+			for (int i = 0; i < (features.get(0).length()/3); i=i+3) {
+				tfidf[i] = features.get(0)[i];
+				tf[i] = features.get(0)[i+1];
+				idf[i] = features.get(0)[i+2];
+			}
+
+			for (int i = 0; i < tfidf.length(); i++) {
+				// Document length
+				int relevance_label = 0;
+				String query_id = pair[0];
+				double feature_1_TF = tf[i];
+				double feature_2_IDF = idf[i];
+				double feature_3_TF_IDF = tfidf[i];
+				double feature_4_BM25 = features.get(1)[i];
+				double feature_5_DFR = features.get(2)[i];
+				double feature_6_LM = features.get(3)[i];
+				double feature_7_DL = 0.000;
+				// print format here
+				// <line> .=. <target> qid:<qid> <feature>:<value> <feature>:<value> ... <feature>:<value> # <info>
+				System.out.println(relevance_label + " qid:" + query_id +
+						" 1:" + feature_1_TF +
+						" 2:" + feature_2_IDF +
+						" 3:" + feature_3_TF_IDF + 
+						" 4:" + feature_4_BM25 +
+						" 5:" + feature_5_DFR + 
+						" 6:" + feature_6_LM + 
+						" 7:" + feature_7_DL + 
+						" #" +
+						"docid = "+ store_simf.get(i) + " " + i);
+			}
+				
+			//print whole shit
+			Date end = new Date();
+			time = time + (end.getTime() - start.getTime());
+			query_count = query_count + 1;
 		}
 		Date end_total = new Date();
 		System.out.println("\n" +time + " total milliseconds spendt"); // print time spent indexing to user
@@ -207,7 +249,7 @@ public class BatchSearch {
 		reader.close();
 	}
 
-	public static void doBatchSearch(BufferedReader in, IndexSearcher searcher, String qid, Query query, String runtag)
+	public static double[] doBatchSearch(BufferedReader in, IndexSearcher searcher, String qid, Query query, String runtag)
 			throws IOException {
 		//System.out.println("numTotalHits");
 
@@ -225,41 +267,31 @@ public class BatchSearch {
 
 		// Can be 0, 1 or 2
 
-		if (searcher.getDefaultSimilarity() instanceof ClassicSimilarity) {
-			// Default similarity is used, which means we can use the DefaultSimilarity methods (See Lucene API)
-		} else if (searcher.getDefaultSimilarity() instanceof BM25Similarity) {
-			// BM25 similarity is used, which means we can use the BM25Similarity methods (See Lucene API)
-		} else{
-			// Else
-		}
+
 
 		// double TF =  searcher.termStatistics();
 		// double DL = searcher.doc.getLength();
-
-		int relevance_label = 0;
-		String query_id = qid;
-		double feature_1_TF = 0.0000;
-		double feature_2_IDF = 0.0000;
-		double feature_3_TF_IDF = 0.0000;
-		double feature_4_BM25 = 0.0000;
-		double feature_5_DL = 0.0000; // Document length
 
 		TopDocs results = searcher.search(query, 1000); // Finds the top 1000 hits for query.
 		ScoreDoc[] hits = results.scoreDocs;
 		HashMap<String, String> seen = new HashMap<String, String>(1000);
 		long numTotalHits = results.totalHits;
+		
 
+		
 		//System.out.println("	" + numTotalHits);
 
 		//""" set start to 0 and end to min to min hits """
 		int start = 0;
 		long end = Math.min(numTotalHits, 1000);
 
-
 		//""" Loop through all hits for current query """
+		double[] return_list = new double[(int)end];
 		for (int i = start; i < end; i++) {
+			
 			Document doc = searcher.doc(hits[i].doc);
 			String docno = doc.get("docno");
+			store_simf.add(docno);
 
 			// There are duplicate document numbers in the FR collection, so only output a given
 			// docno once.
@@ -267,21 +299,26 @@ public class BatchSearch {
 				continue;
 			}
 			seen.put(docno, docno);
-			// print format here
-			// <line> .=. <target> qid:<qid> <feature>:<value> <feature>:<value> ... <feature>:<value> # <info>
-			System.out.println(relevance_label + " qid:" + query_id +
-					" 1:" + feature_1_TF +
-					" 2:" + feature_2_IDF +
-					" 3:" + feature_3_TF_IDF + 
-					" 4:" + feature_4_BM25 +
-					" 5:" + feature_5_DL + 
-					" #" +
-					"docid = "+ docno + " " + i + " " + hits[i].score + " " + runtag);
+			return_list[i] = hits[i].score;
+			if (("default").equals(runtag)){
+				// get tf, idf, tfid
+			}else if (("bm25").equals(runtag)){
+				
+				// BM25 score
+			}else if (("dfr").equals(runtag)){
+				// DFR score
+			}else if (("lm").equals(runtag)){
+				// 
+			}else{
+				//nothing
+			}
+			
 
 		}
+		return return_list;
 	}
 
-	private static String tokenizeStopStem(String input, boolean stemming) throws Exception {
+	private String tokenizeStopStem(String input, boolean stemming) throws Exception {
 
 		File file = new File("./test-data/stop_words.txt");
 		BufferedReader br = new BufferedReader(new FileReader(file));
