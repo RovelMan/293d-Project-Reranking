@@ -208,7 +208,7 @@ public class BatchSearch {
 				tf[i] = features.get(0)[i+1];
 				idf[i] = features.get(0)[i+2];
 			}
-
+			
 			for (int i = 0; i < tfidf.length; i++) {
 				// Document length
 				int relevance_label = 0;
@@ -286,20 +286,29 @@ public class BatchSearch {
 		long end = Math.min(numTotalHits, 1000);
 
 		//""" Loop through all hits for current query """
-		double[] return_list = new double[(int)end];
-		for (int i = start; i < end; i++) {
+		double[] return_list = new double[100];
+		for (int i = start; i < 100; i++) {
 			
-			Document doc = searcher.doc(hits[i].doc);
-			String docno = doc.get("docno");
-			store_simf.add(docno);
 
 			// There are duplicate document numbers in the FR collection, so only output a given
 			// docno once.
-			if (seen.containsKey(docno)) {
-				continue;
+			
+			
+			if(i<(int)end){
+				return_list[i] = hits[i].score;
+				System.out.println("found doc");
+				Document doc = searcher.doc(hits[i].doc);
+				String docno = doc.get("docno");
+				store_simf.add(docno);
+				if (seen.containsKey(docno)) {
+					continue;
+				}
+				seen.put(docno, docno);
+			}else{
+				return_list[i] = 0;
+				store_simf.add("");
 			}
-			seen.put(docno, docno);
-			return_list[i] = hits[i].score;
+			
 			if (("default").equals(runtag)){
 				// get tf, idf, tfid
 			}else if (("bm25").equals(runtag)){
