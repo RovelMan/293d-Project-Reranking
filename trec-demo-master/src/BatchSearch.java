@@ -199,17 +199,17 @@ public class BatchSearch {
 				searcher.setSimilarity(simfn);
 				features.add(doBatchSearch(in, searcher, pair[0], query, simstring));
 			}
-			double[] tf = new double[features.get(0).length()/3];
-			double[] idf = new double[features.get(0).length()/3];
-			double[] tfidt = new double[features.get(0).length()/3];
+			double[] tf = new double[features.get(0).length/3];
+			double[] idf = new double[features.get(0).length/3];
+			double[] tfidt = new double[features.get(0).length/3];
 
-			for (int i = 0; i < (features.get(0).length()/3); i=i+3) {
+			for (int i = 0; i < (features.get(0).length/3); i=i+3) {
 				tfidf[i] = features.get(0)[i];
 				tf[i] = features.get(0)[i+1];
 				idf[i] = features.get(0)[i+2];
 			}
 
-			for (int i = 0; i < tfidf.length(); i++) {
+			for (int i = 0; i < tfidf.length; i++) {
 				// Document length
 				int relevance_label = 0;
 				String query_id = pair[0];
