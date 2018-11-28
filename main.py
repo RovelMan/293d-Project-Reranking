@@ -1,6 +1,7 @@
 import os
 import sys
 import datetime
+import mmap
 
 """
     ---------------------------------------------------------------
@@ -62,25 +63,48 @@ import datetime
 
 """
 
+def write_chunk(start_percent, end_percent, lines, to_file):
+    data_size = len(lines)
+    chunk = lines[int(data_size*start_percent):int(data_size*end_percent)]
+    f = open(to_file,'w')
+    for line in chunk:
+        f.write(line)
+    f.close()
+
+
 # Run Lucene
 def lucene():
     path_name = './trec-demo-master'
-    sys.stdout.write("-------------------------------\n")
-    sys.stdout.write("Starting script..\n")
+    sys.stdout.write("-------------------------------\n\n")
+    sys.stdout.write("  Starting Lucene()\n\n")
     os.chdir(('{}').format(path_name))
-    os.system('ant')
-    os.system('ant IndexTREC')
+    sys.stdout.write('-------------------------------\n\n')
+    sys.stdout.write("  Running lucene\n\n")
+    # os.system('ant')
+    # os.system('ant IndexTREC')
     # os.system('java -cp "bin:lib/*" BatchSearch -index index/ -queries test-data/title-queries.301-450 -simfn bm25 > ../RankLib/data/letor.txt')
-    os.system('java -cp "bin:lib/*" BatchSearch -index index/ -queries test-data/title-queries.301-450 -simfn bm25')
+    # os.system('java -cp "bin:lib/*" BatchSearch -index index/ -queries test-data/title-queries.301-450 -simfn bm25')
+    sys.stdout.write('-------------------------------\n\n')
+    sys.stdout.write('  Generating data\n\n')
+    f = open('../RankLib/data/letor.txt','r')
+    lines = f.readlines()
+    f.close()
+    write_chunk(0,0.7,lines,'../RankLib/data/train.txt')
+    write_chunk(0.7,0.85,lines,'../RankLib/data/vali.txt')
+    write_chunk(0.85,1,lines,'../RankLib/data/test.txt')
+    sys.stdout.write('-------------------------------\n\n')
+    sys.stdout.write('  Done with Lucene()\n\n')
+    sys.stdout.write('-------------------------------\n\n')
 
 lucene()
 
 # Run Ranklib
 def ranklib():
-    
+    sys.stdout.write('\n\n-------------------------------\n\n')
+    sys.stdout.write('  Starting RankLib()\n\n')
     path_name = '/RankLib'
 
-    os.system(('cd {}').format(path_name))
+    os.chdir(('cd {}').format(path_name))
     ranking_models = ["MART", "RankNet", "RankBoost", "AdaRank", "Coordinate_Ascent",
                 "", "LambdaMART", "ListNet", "Random_Forests", "L2_Regularization"]
     train_model = [6, 0]
