@@ -227,11 +227,16 @@ public class BatchSearch {
 
 		// Can be 0, 1 or 2
 
-		if (searcher.getSimilarity() == new DefaultSimilarity()) {
+		if (searcher.getDefaultSimilarity() instanceof ClassicSimilarity) {
 			// Default similarity is used, which means we can use the DefaultSimilarity methods (See Lucene API)
-		} else if (searcher.getSimilarity() == new BM25Similarity()) {
+		} else if (searcher.getDefaultSimilarity() instanceof BM25Similarity) {
 			// BM25 similarity is used, which means we can use the BM25Similarity methods (See Lucene API)
+		} else{
+			// Else
 		}
+
+		// double TF =  searcher.termStatistics();
+		// double DL = searcher.doc.getLength();
 
 		int relevance_label = 0;
 		String query_id = qid;

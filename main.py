@@ -62,14 +62,15 @@ import datetime
 
 # Run Lucene
 def lucene():
-    path_name = '/trec-demo-master'
+    path_name = './trec-demo-master'
     sys.stdout.write("-------------------------------")
     sys.stdout.write("Starting script..")
-    os.system(('cd {}').format(path_name))
+    os.chdir(('{}').format(path_name))
     os.system('ant')
     os.system('ant IndexTrec')
     os.system('ant BatchSearch')
 
+lucene()
 
 # Run Ranklib
 def ranklib():
@@ -139,10 +140,6 @@ def ranklib():
                 path_name,ranking_models[x], metric_test, x, path_name, metric_test, write_results))
         sys.stdout.write("\nFinished all the test models!\n\n")
 
-    train_models(train_model)
-    for i in range(5):
-        # train_models(train_model)
-        rank_models(test_model)
 
 
 
