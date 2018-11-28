@@ -1,0 +1,26 @@
+If you want to run it in a single-file mode with 3-fold cross validation, the sample command is as follow. Here, $1 is filename and $2 is iteration number. Metrics can be changed to NDCG@k if wanted.
+
+MART:
+java -Xmx12000m -jar ./RankLib-2.1-patched.jar -shrinkage 0.1 -train $1 -ranker 0 -kcv 3 -kcvmd models/ -kcvmn ca -tree $2 -leaf 10 -metric2t MAP -metric2T MAP
+
+AdaRank:
+java -Xmx12000m -jar ./RankLib-2.1-patched.jar -train $1 -ranker 3 -kcv 3 -kcvmd modelsAda/ -kcvmn ca -round $2 -metric2t MAP -metric2T MAP
+
+LambdaMART:
+java -Xmx12000m -jar ./RankLib-2.1-patched.jar -shrinkage 0.1 -train $1 -ranker 6 -kcv 3 -kcvmd models/ -kcvmn ca -tree $2 -leaf 10 -metric2t MAP -metric2T MAP
+
+
+-Xin Jin
+
+
+For example,
+
+
+java -Xmx5500m -jar /home/hadoop/RankLib/RankLib-v2.0/bin/RankLib.jar  -train train.txt -ranker 2 -test test.txt -validate vali.txt -metric2t NDCG@1 -metric2T NDCG@1 -letor -silent -tc 10 -round 300
+
+
+Actual cmd line for this directory, Kristoffer:
+
+java -Xmx5500m -jar RankLib-2.1-patched.jar  -train ./M82008/Fold1/train.txt -ranker 2 -test ./M82008/Fold1/test.txt -validate ./M82008/Fold1/vali.txt -metric2t NDCG@1 -metric2T NDCG@10 -silent -tc 10 -round 300 
+
+
