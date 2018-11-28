@@ -46,13 +46,17 @@ import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.TokenFilter;
 import org.apache.lucene.analysis.tokenattributes.KeywordAttribute;
 import org.apache.lucene.analysis.standard.StandardTokenizer;
-import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
+//import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
+
 import org.apache.lucene.analysis.core.LowerCaseTokenizer;
 import org.apache.lucene.analysis.Tokenizer;
 import org.apache.lucene.analysis.tokenattributes.OffsetAttribute;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 import org.apache.lucene.analysis.Analyzer.TokenStreamComponents;
-import org.apache.lucene.analysis.util.CharArraySet;
+//import org.apache.lucene.analysis.util.CharArraySet;
+import org.apache.lucene.analysis.CharArraySet;
+import org.apache.lucene.document.FloatDocValuesField;
+
 
 public class TrecDocIterator implements Iterator<Document> {
 
@@ -123,11 +127,10 @@ public class TrecDocIterator implements Iterator<Document> {
 						String title = t.group(1);
 						String stemmed_title = tokenizeStopStem(title.toLowerCase(), true);
 
-						//System.out.println(stemmed_title);//.setBoost();
+						//System.out.println(stemmed_title);
 					 	Field titleField = new TextField("title", stemmed_title, Field.Store.YES);
 						doc.add(titleField);
-						titleField.setBoost(10.0f);
-						//System.out.println("title "+ title);
+						//doc.add(new FloatDocValuesField("title", 10.0f));
 					}
 
 					//""" Matching BODY tag and adding it to the doc"""
@@ -136,11 +139,11 @@ public class TrecDocIterator implements Iterator<Document> {
 						String body = b.group(1);
 						String stemmed_body = tokenizeStopStem(body.toLowerCase(), true);
 
-						//System.out.print(title);//.setBoost();
+						//System.out.print(title);
 					 	Field bodyField = new TextField("body", stemmed_body, Field.Store.YES);
 						doc.add(bodyField);
-						bodyField.setBoost(1.0f);
-						//System.out.println("body "+ body);
+						//doc.add(new FloatDocValuesField("body", 10.0f));
+
 					}
 					String stemmed_content = tokenizeStopStem(sb.toString().toLowerCase(), true);
 					doc.add(new TextField("contents", stemmed_content, Field.Store.NO));
@@ -161,6 +164,7 @@ public class TrecDocIterator implements Iterator<Document> {
 		// Do nothing, but don't complain
 	}
 
+
 	private static String tokenizeStopStem(String input, boolean stemming) throws Exception {
 
 		// Stopwords-file converted to a collection
@@ -173,14 +177,17 @@ public class TrecDocIterator implements Iterator<Document> {
 		 }
 
 		//  CharArraySet(Collection<?> c, boolean ignoreCase)
-		CharArraySet stop_word_data = new CharArraySet(Version.LUCENE_41, stop_word_list, false);
+		CharArraySet stop_word_data = new CharArraySet(stop_word_list, false);
 
 		// A TokenStream enumerates (opplister) the sequence of tokens, either from fields of a Document or from query text
 		// A grammar-based tokenizer constructed with JFlex.
-		TokenStream tokenStream = new StandardTokenizer(Version.LUCENE_41, new StringReader(input));
+		Analyzer analyzer = new StandardAnalyzer();
+
+		//TokenStream tokenStream = new StandardTokenizer(new StringReader(input));
+		TokenStream tokenStream = analyzer.tokenStream("contents", new StringReader(input));
 
 		// Stopfilter removes stop words from a token stream
-		tokenStream = new StopFilter(Version.LUCENE_41, tokenStream, stop_word_data);
+		tokenStream = new StopFilter( tokenStream, stop_word_data);
 		if(stemming){
 			// Transforms the token stream as per the Porter stemming algorithm. Note: the input to the stemming filter must already be in lower case
 			tokenStream = new PorterStemFilter(tokenStream);

@@ -66,11 +66,11 @@ public class IndexTREC {
 			System.out.println("Indexing to directory '" + indexPath + "'...");
 
 			// reading the data
-			Directory dir = FSDirectory.open(new File(indexPath));
+			Directory dir = FSDirectory.open(new File(indexPath).toPath());
 			// initiate the analizer. This is what tokenizes the stream of docs https://www.tutorialspoint.com/lucene/lucene_standardanalyzer.htm
-			Analyzer analyzer = new StandardAnalyzer(Version.LUCENE_41);
+			Analyzer analyzer = new StandardAnalyzer();
 			// creates a configfile for a indexwriter
-			IndexWriterConfig iwc = new IndexWriterConfig(Version.LUCENE_41, analyzer);
+			IndexWriterConfig iwc = new IndexWriterConfig(analyzer);
 
 			//""" if -update is passed as command we manipulate existing index """
 			if (create) {
@@ -145,13 +145,7 @@ public class IndexTREC {
 				TrecDocIterator docs = new TrecDocIterator(file); // start iterator
 				Document doc;
 				while (docs.hasNext()) { // loop through lines
-
 					doc = docs.next();
-					//System.out.println("\n");
-					//System.out.println(doc.getField("title"));
-					//System.out.println("\n");
-
-
 					if (doc != null && doc.getField("contents") != null)
 						writer.addDocument(doc);
 				}

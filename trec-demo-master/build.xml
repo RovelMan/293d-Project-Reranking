@@ -11,9 +11,9 @@
     <property name="source" value="1.6"/>
     <path id="PromiseDemo.classpath">
         <pathelement location="bin"/>
-        <pathelement location="lib/lucene-core-4.1.0.jar"/>
-        <pathelement location="lib/lucene-analyzers-common-4.1.0.jar"/>
-        <pathelement location="lib/lucene-queryparser-4.1.0.jar"/>
+        <pathelement location="lib/lucene-core-7.5.0.jar"/>
+        <pathelement location="lib/lucene-analyzers-common-7.5.0.jar"/>
+        <pathelement location="lib/lucene-queryparser-7.5.0.jar"/>
     </path>
     <target name="init">
         <mkdir dir="bin"/>
@@ -65,7 +65,7 @@
     </target>
     <target name="BatchSearch">
         <java classname="BatchSearch" failonerror="true" fork="yes">
-          <arg line="-index index -queries test-data/title-queries.301-450 -simfn default"/>
+            <arg line="-index index -queries test-data/title-queries.301-450 -simfn default"/>
             <classpath refid="PromiseDemo.classpath"/>
         </java>
     </target>

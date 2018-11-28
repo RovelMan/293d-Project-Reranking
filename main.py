@@ -71,21 +71,17 @@ def lucene():
     os.system('ant BatchSearch')
 
 
-#Generate LETOR textfile from features
-def letor():
-    #<line> .=. <target> qid:<qid> <feature>:<value> <feature>:<value> ... <feature>:<value> # <info>
-
 # Run Ranklib
 def ranklib():
     
     path_name = '/RankLib'
+    os.system(('cd {}').format(path_name))
     ranking_models = ["MART", "RankNet", "RankBoost", "AdaRank", "Coordinate_Ascent",
                 "", "LambdaMART", "ListNet", "Random_Forests", "L2_Regularization"]
     train_model = [6, 0]
     test_model = [6, 0, 8, 3]
     metric_train = "NDCG@10"
     metric_test = metric_train
-    folder = 1
     silent = "-silent"
     # General
     epoch = 300
@@ -101,16 +97,16 @@ def ranklib():
         for x in models:
             start_time = datetime.datetime.now()
             sys.stdout.write(
-                ("\n\nStarting training with {}\nFolder: {}\n").format(ranking_models[x], folder))
+                ("\n\nStarting training with {}\n").format(ranking_models[x]))
             if x == 0 or x == 6:
                 save_model = (
-                    "./MQ2008/models/model_{}_{}_f{}.txt").format(ranking_models[x], metric_train, folder)
-                os.system(("java -Xmx5500m -jar RankLib-2.1-patched.jar  -train ./MQ2008/Fold{}/train.txt -ranker {} -validate ./MQ2008/Fold{}/vali.txt -metric2t {} -tc {} -round {} -epoch {} -tree {} -save {} {}").format(
-                    folder, x, folder, metric_train, tc, epoch, epoch, tree_size, save_model, silent))
+                    "{}/model_{}_{}.txt").format(path_name,ranking_models[x], metric_train )
+                os.system(("java -Xmx5500m -jar RankLib-2.1-patched.jar  -train {}/data/train.txt -ranker {} -validate {}/data/vali.txt -metric2t {} -tc {} -round {} -epoch {} -tree {} -save {} {}").format(
+                    path_name, x, path_name, metric_train, tc, epoch, epoch, tree_size, save_model, silent))
                 
                 """Preprocess to draw heatmap"""
                 # f = open(
-                #     ("./MQ2008/models/model_{}_{}_f{}.xml").format(ranking_models[x], metric_train, folder), "r+")
+                #     ("./MQ2008/models/model_{}_{}_f{}.xml").format(ranking_models[x], metric_train, ), "r+")
                 # lines = f.readlines()
                 # f.seek(0)
                 # for i in lines:
@@ -120,13 +116,13 @@ def ranklib():
                 # f.close()
                 # sys.stdout.write("\nDraw heatmap..\n")
                 # os.system(("python ./draw_tree.py ./MQ2008/models/model_{}_{}_f{}.xml | dot -Tpng > ./MQ2008/models/model_heatmap_{}_{}_f{}.png").format(
-                #     ranking_models[x], metric_train,folder, ranking_models[x], metric_train,folder))
+                #     ranking_models[x], metric_train,, ranking_models[x], metric_train,))
             else:
                 # format: train, ranker, test, validate, metric, metric
                 save_model = (
-                    "./MQ2008/models/model_{}_{}_f{}.txt").format(ranking_models[x], metric_train, folder)
-                os.system(("java -Xmx5500m -jar RankLib-2.1-patched.jar  -train ./MQ2008/Fold{}/train.txt -ranker {} -validate ./MQ2008/Fold{}/vali.txt -metric2t {} -tc {} -round {} -epoch {} -bag {} -tree {} -save {} {}").format(
-                    folder, x, folder, metric_train, tc, epoch, epoch, bag_size, r_tree, save_model, silent))
+                    "{}/model_{}_{}.txt").format(path_name,ranking_models[x], metric_train)
+                os.system(("java -Xmx5500m -jar RankLib-2.1-patched.jar  -train {}/data/train.txt -ranker {} -validate {}/data/vali.txt -metric2t {} -tc {} -round {} -epoch {} -bag {} -tree {} -save {} {}").format(
+                    path_name, x, path_name, metric_train, tc, epoch, epoch, bag_size, r_tree, save_model, silent))
             time = datetime.datetime.now()-start_time
             sys.stdout.write(str(time))
             sys.stdout.write(("\n...Finished {}\n").format(ranking_models[x]))
@@ -138,16 +134,15 @@ def ranklib():
             sys.stdout.write(("Start ranking: {}\n").format(ranking_models[x]))
             #model, metric_test, ranker, test, metric, save
             write_results = (
-                "./MQ2008/results/result_model_{}_{}_f{}.txt").format(ranking_models[x], metric_train, folder)
-            os.system(("java -Xmx5500m -jar RankLib-2.1-patched.jar -load ./MQ2008/models/model_{}_{}_f{}.txt -ranker {} -test ./MQ2008/Fold{}/test.txt -metric2T {} -tc 10  > {}").format(
-                ranking_models[x], metric_test, folder, x, folder, metric_test, write_results))
+                "{}/results/result_model_{}_{}.txt").format(path_name,ranking_models[x], metric_train)
+            os.system(("java -Xmx5500m -jar RankLib-2.1-patched.jar -load {}/models/model_{}_{}.txt -ranker {} -test {}/data/test.txt -metric2T {} -tc 10  > {}").format(
+                path_name,ranking_models[x], metric_test, x, path_name, metric_test, write_results))
         sys.stdout.write("\nFinished all the test models!\n\n")
 
     train_models(train_model)
     for i in range(5):
         # train_models(train_model)
         rank_models(test_model)
-        folder += 1
 
 
 
