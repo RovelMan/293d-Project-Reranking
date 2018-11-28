@@ -63,12 +63,12 @@ import datetime
 # Run Lucene
 def lucene():
     path_name = './trec-demo-master'
-    sys.stdout.write("-------------------------------")
-    sys.stdout.write("Starting script..")
+    sys.stdout.write("-------------------------------\n")
+    sys.stdout.write("Starting script..\n")
     os.chdir(('{}').format(path_name))
     os.system('ant')
-    os.system('ant IndexTrec')
-    os.system('ant BatchSearch')
+    os.system('ant IndexTREC')
+    os.system('java -cp "bin:lib/*" BatchSearch -index index/ -queries test-data/title-queries.301-450 -simfn bm25 > ../RankLib/data/letor.txt')
 
 lucene()
 
@@ -76,6 +76,7 @@ lucene()
 def ranklib():
     
     path_name = '/RankLib'
+
     os.system(('cd {}').format(path_name))
     ranking_models = ["MART", "RankNet", "RankBoost", "AdaRank", "Coordinate_Ascent",
                 "", "LambdaMART", "ListNet", "Random_Forests", "L2_Regularization"]

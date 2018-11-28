@@ -65,7 +65,7 @@
     </target>
     <target name="BatchSearch">
         <java classname="BatchSearch" failonerror="true" fork="yes">
-            <arg line="-index index -queries test-data/title-queries.301-450 -simfn bm25 > letor.txt"/>
+            <arg line="-index index -queries test-data/title-queries.301-450 -simfn bm25"/>
             <classpath refid="PromiseDemo.classpath"/>
         </java>
     </target>

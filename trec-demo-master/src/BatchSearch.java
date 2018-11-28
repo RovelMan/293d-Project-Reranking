@@ -192,8 +192,6 @@ public class BatchSearch {
 		.add(query2, BooleanClause.Occur.SHOULD)
 		.build();
 
-
-		System.out.println("Query:" + booleanQuery);
 		doBatchSearch(in, searcher, pair[0], booleanQuery, simstring);
 		Date end = new Date();
 		time = time + (end.getTime() - start.getTime());
@@ -279,7 +277,6 @@ public class BatchSearch {
 					" 5:" + feature_5_DL + 
 					" #" +
 					"docid = "+ docno + " " + i + " " + hits[i].score + " " + runtag);
-			System.out.println("	--> Title field: " + doc.get("title"));
 
 		}
 	}
