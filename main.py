@@ -100,7 +100,7 @@ def ranklib():
                 ("\n\nStarting training with {}\n").format(ranking_models[x]))
             if x == 0 or x == 6:
                 save_model = (
-                    "{}/model_{}_{}.txt").format(path_name,ranking_models[x], metric_train )
+                    "{}/{}_{}_model.txt").format(path_name,ranking_models[x], metric_train )
                 os.system(("java -Xmx5500m -jar RankLib-2.1-patched.jar  -train {}/data/train.txt -ranker {} -validate {}/data/vali.txt -metric2t {} -tc {} -round {} -epoch {} -tree {} -save {} {}").format(
                     path_name, x, path_name, metric_train, tc, epoch, epoch, tree_size, save_model, silent))
                 
@@ -120,7 +120,7 @@ def ranklib():
             else:
                 # format: train, ranker, test, validate, metric, metric
                 save_model = (
-                    "{}/model_{}_{}.txt").format(path_name,ranking_models[x], metric_train)
+                    "{}/{}_{}_model.txt").format(path_name,ranking_models[x], metric_train)
                 os.system(("java -Xmx5500m -jar RankLib-2.1-patched.jar  -train {}/data/train.txt -ranker {} -validate {}/data/vali.txt -metric2t {} -tc {} -round {} -epoch {} -bag {} -tree {} -save {} {}").format(
                     path_name, x, path_name, metric_train, tc, epoch, epoch, bag_size, r_tree, save_model, silent))
             time = datetime.datetime.now()-start_time
@@ -134,7 +134,7 @@ def ranklib():
             sys.stdout.write(("Start ranking: {}\n").format(ranking_models[x]))
             #model, metric_test, ranker, test, metric, save
             write_results = (
-                "{}/results/result_model_{}_{}.txt").format(path_name,ranking_models[x], metric_train)
+                "{}/results/{}_{}_result.txt").format(path_name,ranking_models[x], metric_train)
             os.system(("java -Xmx5500m -jar RankLib-2.1-patched.jar -load {}/models/model_{}_{}.txt -ranker {} -test {}/data/test.txt -metric2T {} -tc 10  > {}").format(
                 path_name,ranking_models[x], metric_test, x, path_name, metric_test, write_results))
         sys.stdout.write("\nFinished all the test models!\n\n")

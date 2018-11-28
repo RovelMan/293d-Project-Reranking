@@ -225,6 +225,22 @@ public class BatchSearch {
 
 		// Represents hits returned by IndexSearcher.search(Query,int).
 
+		// Can be 0, 1 or 2
+
+		if (searcher.getSimilarity() == new DefaultSimilarity()) {
+			// Default similarity is used, which means we can use the DefaultSimilarity methods (See Lucene API)
+		} else if (searcher.getSimilarity() == new BM25Similarity()) {
+			// BM25 similarity is used, which means we can use the BM25Similarity methods (See Lucene API)
+		}
+
+		int relevance_label = 0;
+		String query_id = qid;
+		double feature_1_TF = 0.0000;
+		double feature_2_IDF = 0.0000;
+		double feature_3_TF_IDF = 0.0000;
+		double feature_4_BM25 = 0.0000;
+		double feature_5_DL = 0.0000; // Document length
+
 		TopDocs results = searcher.search(query, 1000); // Finds the top 1000 hits for query.
 		ScoreDoc[] hits = results.scoreDocs;
 		HashMap<String, String> seen = new HashMap<String, String>(1000);
@@ -248,7 +264,16 @@ public class BatchSearch {
 				continue;
 			}
 			seen.put(docno, docno);
-			System.out.println(qid+" Q0 "+docno+" "+i+" "+hits[i].score+" "+runtag);
+			// print format here
+			// <line> .=. <target> qid:<qid> <feature>:<value> <feature>:<value> ... <feature>:<value> # <info>
+			System.out.println(relevance_label + " qid:" + query_id +
+					" 1:" + feature_1_TF +
+					" 2:" + feature_2_IDF +
+					" 3:" + feature_3_TF_IDF + 
+					" 4:" + feature_4_BM25 +
+					" 5:" + feature_5_DL + 
+					" #" +
+					"docid = "+ docno + " " + i + " " + hits[i].score + " " + runtag);
 			System.out.println("	--> Title field: " + doc.get("title"));
 
 		}
