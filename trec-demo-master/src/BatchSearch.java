@@ -199,6 +199,7 @@ public class BatchSearch {
 				searcher.setSimilarity(simfn);
 				features.add(doBatchSearch(in, searcher, pair[0], query, simstring));
 			}
+			
 			double[] tf = new double[features.get(0).length/3];
 			double[] idf = new double[features.get(0).length/3];
 			double[] tfidf = new double[features.get(0).length/3];
@@ -277,8 +278,6 @@ public class BatchSearch {
 		HashMap<String, String> seen = new HashMap<String, String>(1000);
 		long numTotalHits = results.totalHits;
 		
-
-		
 		//System.out.println("	" + numTotalHits);
 
 		//""" set start to 0 and end to min to min hits """
@@ -296,9 +295,14 @@ public class BatchSearch {
 			
 			if(i<(int)end){
 				return_list[i] = hits[i].score;
-				System.out.println("found doc");
 				Document doc = searcher.doc(hits[i].doc);
 				String docno = doc.get("docno");
+				
+				// This might help us?
+				System.out.println("NEW DOCUMENT START");
+				System.out.println("ID: <" + i + ">\tSIMF: <" + runtag.toUpperCase() + ">\tDOCNO: <" + docno + ">");
+				System.out.println(searcher.explain(query, i));
+				
 				store_simf.add(docno);
 				if (seen.containsKey(docno)) {
 					continue;
@@ -363,7 +367,6 @@ public class BatchSearch {
 					sb.append(" " + term);
 				}
 			}
-
 		}
 
 		return sb.toString();
