@@ -291,9 +291,9 @@ public class BatchSearch {
 
 			// There are duplicate document numbers in the FR collection, so only output a given
 			// docno once.
+			String explanation = "";
 			
-			
-			if(i<(int)end){
+			if (i<(int)end) {
 				return_list[i] = hits[i].score;
 				Document doc = searcher.doc(hits[i].doc);
 				String docno = doc.get("docno");
@@ -301,28 +301,41 @@ public class BatchSearch {
 				// This might help us?
 				System.out.println("NEW DOCUMENT START");
 				System.out.println("ID: <" + i + ">\tSIMF: <" + runtag.toUpperCase() + ">\tDOCNO: <" + docno + ">");
-				System.out.println(searcher.explain(query, i));
+				explanation = searcher.explain(query, i).toString();
+				System.out.println(explanation);
 				
 				store_simf.add(docno);
 				if (seen.containsKey(docno)) {
 					continue;
 				}
 				seen.put(docno, docno);
-			}else{
+			} else {
 				return_list[i] = 0;
 				store_simf.add("");
 			}
 			
-			if (("default").equals(runtag)){
+			if (("default").equals(runtag)) {
 				// get tf, idf, tfid
-			}else if (("bm25").equals(runtag)){
-				
+				/**String[] array = explanation.split("\n");
+				String tf = "";
+				String tf2 = "";
+				String tf3 = "";
+				//System.out.println(array.length);
+				if (array.length > 1) {
+					tf = array[3].trim();
+				}
+				if (array.length > 9) {
+					tf2 = array[11].trim();
+					tf3 = array[19].trim();
+				}
+				System.out.println(tf + " " + tf2 + " " + tf3);**/
+			} else if (("bm25").equals(runtag)) {
 				// BM25 score
-			}else if (("dfr").equals(runtag)){
+			} else if (("dfr").equals(runtag)) {
 				// DFR score
-			}else if (("lm").equals(runtag)){
+			} else if (("lm").equals(runtag)) {
 				// 
-			}else{
+			} else {
 				//nothing
 			}
 			
@@ -339,7 +352,7 @@ public class BatchSearch {
 		String line;
 		while ((line = br.readLine()) != null) {
 			stop_word_list.add(line);
-		 }
+		}
 
 		CharArraySet stop_word_data = new CharArraySet(stop_word_list, false);
 		Analyzer analyzer = new StandardAnalyzer();
