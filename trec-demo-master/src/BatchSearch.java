@@ -198,19 +198,21 @@ public class BatchSearch {
 				}
 				// set similarity function TODO: do actual math
 				searcher.setSimilarity(simfn);
-				features.add(doBatchSearch(in, searcher, pair[0], query, simstring));
+				double[] sim_features = doBatchSearch(in, searcher, pair[0], query, simstring);
+				features.add(sim_features);
+				
 			}
-			
-			double[] tf = new double[features.get(0).length/3];
-			double[] idf = new double[features.get(0).length/3];
-			double[] tfidf = new double[features.get(0).length/3];
+			double[] tf = new double[features.get(0).length/4];
+			double[] idf = new double[features.get(0).length/4];
+			double[] tfidf = new double[features.get(0).length/4];
+			double[] dl = new double[features.get(0).length/4];
 
-			for (int i = 0; i < (features.get(0).length/3); i=i+3) {
+			for (int i = 0; i < (features.get(0).length/4); i=i+4) {
 				tfidf[i] = features.get(0)[i];
 				tf[i] = features.get(0)[i+1];
 				idf[i] = features.get(0)[i+2];
+				dl[i] = features.get(0)[i+3];
 			}
-			
 			for (int i = 0; i < tfidf.length; i++) {
 				// Document length
 				int relevance_label = 0;
@@ -221,7 +223,7 @@ public class BatchSearch {
 				double feature_4_BM25 = features.get(1)[i];
 				double feature_5_DFR = features.get(2)[i];
 				double feature_6_LM = features.get(3)[i];
-				double feature_7_DL = 0.000;
+				double feature_7_DL = dl[i];
 				// print format here
 				// <line> .=. <target> qid:<qid> <feature>:<value> <feature>:<value> ... <feature>:<value> # <info>
 				System.out.println(relevance_label + " qid:" + query_id +
@@ -270,7 +272,7 @@ public class BatchSearch {
 		// Can be 0, 1 or 2
 
 
-
+		// System.out.println(runtag);
 		// double TF =  searcher.termStatistics();
 		// double DL = searcher.doc.getLength();
 		TopDocs results = searcher.search(query, 1000); // Finds the top 1000 hits for query.
@@ -282,50 +284,55 @@ public class BatchSearch {
 		//""" set start to 0 and end to min to min hits """
 		int start = 0;
 		long end = Math.min(numTotalHits, 1000);
+		// System.out.println("end: "+(int)end);
 		String[] terms = query.toString().replaceAll("contents:","").split(" ");
 		//""" Loop through all hits for current query """
-		double[] return_list = new double[100];
-		for (int i = start; i < 100; i++) {
+		List<Double> result_list = new ArrayList<Double>();
+		for (int i = start; i < (int)end; i++) {
 			
 
 			// There are duplicate document numbers in the FR collection, so only output a given
 			// docno once.
-			String explanation = "";
+			String explanation = "";	
+			result_list.add((double)hits[i].score);
+			Document doc = searcher.doc(hits[i].doc);
+			String docno = doc.get("docno");
+			double doc_len = doc.toString().length();
+			// This might help us?
+			//System.out.println("NEW DOCUMENT START");
+			//System.out.println("ID: <" + i + ">\tSIMF: <" + runtag.toUpperCase() + ">\tDOCNO: <" + docno + ">");
+			explanation = searcher.explain(query, i).toString();
+			// System.out.println(explanation);
 			
-			if (i<(int)end) {
-				return_list[i] = hits[i].score;
-				System.out.println("score: "+hits[i].score);
-				Document doc = searcher.doc(hits[i].doc);
-				String docno = doc.get("docno");
-				// This might help us?
-				//System.out.println("NEW DOCUMENT START");
-				//System.out.println("ID: <" + i + ">\tSIMF: <" + runtag.toUpperCase() + ">\tDOCNO: <" + docno + ">");
-				explanation = searcher.explain(query, i).toString();
-				// System.out.println(explanation);
-				
-				store_simf.add(docno);
-				if (seen.containsKey(docno)) {
-					continue;
-				}
-				seen.put(docno, docno);
-			} else {
-				return_list[i] = 0;
-				store_simf.add("");
+			store_simf.add(docno);
+			if (seen.containsKey(docno)) {
+				continue;
 			}
+			seen.put(docno, docno);
 			
 			if (("default").equals(runtag)) {
 				String[] array = explanation.split("\n");
-				System.out.println(explanation);
+				double tfs = 0.0;
+				double idfs = 0.0;
+				int counter = 1;
+				// System.out.println(explanation);
 				for (int j = 1; j < array.length; j=j+8){
 					if(array.length>1){
 						String term = array[j].split("contents:")[1].split(" ")[0];
-						String tf_score = array[j+2].trim().split(" ")[0];
-						String tf = array[j+3].trim().replaceAll("=termFreq="," ").split(" ")[0];
-						String idf = array[j+4].trim().split(" ")[0];
+						double tf_score = Double.parseDouble(array[j+2].trim().split(" ")[0]);
+						String tfreq = array[j+3].trim().replaceAll("=termFreq="," ").split(" ")[0];
+						double idfreq = Double.parseDouble(array[j+4].trim().split(" ")[0]);
 						String docFreq = array[j+5].trim().split(" ")[0];
-						// System.out.printf("term: %s\ntfscore: %s  tf: %s  idf: %s  docfreq: %s\n\n",term,tf_score,tf,idf,docFreq);
+						tfs=tfs+tf_score;
+						idfs=idfs+idfreq;
+						counter++;
 					}
 				}
+				tfs = tfs/counter;
+				idfs = idfs/counter;
+				result_list.add(tfs);
+				result_list.add(idfs);
+				result_list.add(doc_len);
 				// get tf, idf, tfid
 				/**String[] array = explanation.split("\n");
 				String tf = "";
@@ -349,10 +356,14 @@ public class BatchSearch {
 			} else {
 				//nothing
 			}
-			
-
 		}
-		return return_list;
+		int result_size = result_list.size();
+		double[] res_list = new double[result_size];
+		for (int j = 0; j < result_size; j++) {
+			res_list[j] = result_list.get(j);
+			System.out.println(runtag+"   "+res_list[j]);
+		}
+		return res_list;
 	}
 
 	private static String tokenizeStopStem(String input, boolean stemming) throws Exception {
