@@ -206,12 +206,15 @@ public class BatchSearch {
 			double[] idf = new double[features.get(0).length/4];
 			double[] tfidf = new double[features.get(0).length/4];
 			double[] dl = new double[features.get(0).length/4];
-
-			for (int i = 0; i < (features.get(0).length/4); i=i+4) {
-				tfidf[i] = features.get(0)[i];
-				tf[i] = features.get(0)[i+1];
-				idf[i] = features.get(0)[i+2];
-				dl[i] = features.get(0)[i+3];
+			System.out.println(features.get(0).length);
+			int counter = 0;
+			for (int i = 0; i < (features.get(0).length-1); i=i+4) {
+				System.out.println(i);
+				tfidf[counter] = features.get(0)[i];
+				tf[counter] = features.get(0)[i+1];
+				idf[counter] = features.get(0)[i+2];
+				dl[counter] = features.get(0)[i+3];
+				counter++;
 			}
 			for (int i = 0; i < tfidf.length; i++) {
 				// Document length
@@ -333,20 +336,6 @@ public class BatchSearch {
 				result_list.add(tfs);
 				result_list.add(idfs);
 				result_list.add(doc_len);
-				// get tf, idf, tfid
-				/**String[] array = explanation.split("\n");
-				String tf = "";
-				String tf2 = "";
-				String tf3 = "";
-				//System.out.println(array.length);
-				if (array.length > 1) {
-					tf = array[3].trim();
-				}
-				if (array.length > 9) {
-					tf2 = array[11].trim();
-					tf3 = array[19].trim();
-				}
-				System.out.println(tf + " " + tf2 + " " + tf3);**/
 			} else if (("bm25").equals(runtag)) {
 				// BM25 score
 			} else if (("dfr").equals(runtag)) {
