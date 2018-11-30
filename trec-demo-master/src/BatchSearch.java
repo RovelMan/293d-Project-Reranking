@@ -22,6 +22,7 @@ import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TopDocs;
+import org.apache.lucene.search.Explanation;
 import org.apache.lucene.search.similarities.*;
 import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.util.Version;
@@ -272,18 +273,16 @@ public class BatchSearch {
 
 		// double TF =  searcher.termStatistics();
 		// double DL = searcher.doc.getLength();
-
 		TopDocs results = searcher.search(query, 1000); // Finds the top 1000 hits for query.
 		ScoreDoc[] hits = results.scoreDocs;
 		HashMap<String, String> seen = new HashMap<String, String>(1000);
-		long numTotalHits = results.totalHits;
-		
+		long numTotalHits = results.totalHits;		
 		//System.out.println("	" + numTotalHits);
 
 		//""" set start to 0 and end to min to min hits """
 		int start = 0;
 		long end = Math.min(numTotalHits, 1000);
-
+		String[] terms = query.toString().replaceAll("contents:","").split(" ");
 		//""" Loop through all hits for current query """
 		double[] return_list = new double[100];
 		for (int i = start; i < 100; i++) {
@@ -295,14 +294,14 @@ public class BatchSearch {
 			
 			if (i<(int)end) {
 				return_list[i] = hits[i].score;
+				System.out.println("score: "+hits[i].score);
 				Document doc = searcher.doc(hits[i].doc);
 				String docno = doc.get("docno");
-				
 				// This might help us?
-				System.out.println("NEW DOCUMENT START");
-				System.out.println("ID: <" + i + ">\tSIMF: <" + runtag.toUpperCase() + ">\tDOCNO: <" + docno + ">");
+				//System.out.println("NEW DOCUMENT START");
+				//System.out.println("ID: <" + i + ">\tSIMF: <" + runtag.toUpperCase() + ">\tDOCNO: <" + docno + ">");
 				explanation = searcher.explain(query, i).toString();
-				System.out.println(explanation);
+				// System.out.println(explanation);
 				
 				store_simf.add(docno);
 				if (seen.containsKey(docno)) {
@@ -315,6 +314,18 @@ public class BatchSearch {
 			}
 			
 			if (("default").equals(runtag)) {
+				String[] array = explanation.split("\n");
+				System.out.println(explanation);
+				for (int j = 1; j < array.length; j=j+8){
+					if(array.length>1){
+						String term = array[j].split("contents:")[1].split(" ")[0];
+						String tf_score = array[j+2].trim().split(" ")[0];
+						String tf = array[j+3].trim().replaceAll("=termFreq="," ").split(" ")[0];
+						String idf = array[j+4].trim().split(" ")[0];
+						String docFreq = array[j+5].trim().split(" ")[0];
+						// System.out.printf("term: %s\ntfscore: %s  tf: %s  idf: %s  docfreq: %s\n\n",term,tf_score,tf,idf,docFreq);
+					}
+				}
 				// get tf, idf, tfid
 				/**String[] array = explanation.split("\n");
 				String tf = "";
