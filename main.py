@@ -34,10 +34,30 @@ import mmap
                 headline
                 cn
             2 IDF
+            whole
+                text
+                headline
+                cn
             3 TFIDF
+            whole
+                text
+                headline
+                cn
             4 BM25
-            5  
-            6
+            whole
+                text
+                headline
+                cn
+            5  LM
+            whole
+                text
+                headline
+                cn
+            6 DMR
+            whole
+                text
+                headline
+                cn
             5 DL - document length
 
 

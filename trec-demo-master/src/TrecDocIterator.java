@@ -87,6 +87,7 @@ public class TrecDocIterator implements Iterator<Document> {
 			Pattern docno_tag = Pattern.compile("<DOCNO>\\s*(\\S+)\\s*<");
 			Pattern title_tag = Pattern.compile("<HEADLINE>(.+?)</HEADLINE>", Pattern.MULTILINE); //Pattern.MULTILINE); // retrieve doc id from <DOCNO> TAG
 			Pattern body_tag = Pattern.compile("<TEXT>(.+?)</TEXT>"); //Pattern.MULTILINE); // retrieve doc id from <DOCNO> TAG
+			Pattern cn_tag = Pattern.compile("<CN>(.+?)</CN>");
 
 			boolean in_doc = false;
 			while (true) {
@@ -142,6 +143,17 @@ public class TrecDocIterator implements Iterator<Document> {
 						//System.out.print(title);
 					 	Field bodyField = new TextField("body", stemmed_body, Field.Store.YES);
 						doc.add(bodyField);
+						//doc.add(new FloatDocValuesField("body", 10.0f));
+
+					}
+					Matcher c = cn_tag.matcher(sb.toString());
+					if (c.find()) {
+						String cn = c.group(1);
+						String stemmed_cn = tokenizeStopStem(cn.toLowerCase(), true);
+
+						//System.out.print(title);
+					 	Field cnField = new TextField("cn", stemmed_cn, Field.Store.YES);
+						doc.add(cnField);
 						//doc.add(new FloatDocValuesField("body", 10.0f));
 
 					}
