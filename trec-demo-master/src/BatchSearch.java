@@ -102,7 +102,6 @@ public class BatchSearch {
 		QueryParser parser = new QueryParser("contents", analyzer);
 		QueryParser title_parser = new QueryParser("title", analyzer);
 		QueryParser body_parser = new QueryParser("body", analyzer);
-		QueryParser cn_parser = new QueryParser("cn",analyzer);
 
 		double time = 0.;
 		int query_count = 0;
@@ -171,23 +170,17 @@ public class BatchSearch {
 			Query query = parser.parse(line);
 			Query query_title = title_parser.parse(line);
 			Query query_body = body_parser.parse(line);
-			Query query_cn = cn_parser.parse(line);
-
 			BooleanQuery boolean_title = new BooleanQuery.Builder()
 			.add(query_title, BooleanClause.Occur.SHOULD)
-			.build();
-			BooleanQuery boolean_body = new BooleanQuery.Builder()
 			.add(query_body, BooleanClause.Occur.SHOULD)
-			.build();
-			BooleanQuery boolean_cn = new BooleanQuery.Builder()
-			.add(query_cn, BooleanClause.Occur.SHOULD)
 			.build();
 			// BooleanQuery
 			
-			List<double[]> features = new ArrayList<double[]>();
+			List<double[]> features_w = new ArrayList<double[]>();
 			String[] simfunctions = {"default","bm25","dfr", "lm"};
 			Similarity simfn = null;
 			for (int i = 0; i < simfunctions.length; i++) {
+				String print_string = "";
 				simstring = simfunctions[i];
 				if ("default".equals(simfunctions[i])) {
 					simfn = new ClassicSimilarity();
@@ -208,148 +201,36 @@ public class BatchSearch {
 				}
 				// set similarity function TODO: do actual math
 				searcher.setSimilarity(simfn);
-				features.add(doBatchSearch(in, searcher, pair[0], query, simstring));
-				features.add(doBatchSearch(in, searcher, pair[0], boolean_title, simstring));
-				features.add(doBatchSearch(in, searcher, pair[0], boolean_body, simstring));
-				features.add(doBatchSearch(in, searcher, pair[0], boolean_cn, simstring));
+				double[] content_feat = doBatchSearch(in, searcher, pair[0], query, simstring);
+				features_w.add(content_feat);
 				
 			}
-
-			System.out.println(features.size());
-			int relevance_label = 0;
-			String query_id = pair[0];
-			String print_string = relevance_label + " qid:" + query_id;
-			int counter = 1;
-			for (int i = 0; i < features.size(); i++) {
-				if (i==0||i==1||i==2||i==3) {
-					for (int j = 0; j < features.get(0).length-1; j+=4) {
-						// System.out.println(Arrays.toString(features.get(i));
-						//tfidf score
-						print_string+=(" "+counter+":"+features.get(i)[j]);
-						counter+=1;
-						//tf score
-						print_string+=(" "+counter+":"+features.get(i)[j+1]);
-						counter+=1;
-						//idf score
-						print_string+=(" "+counter+":"+features.get(i)[j+2]);
-						counter+=1;
-						//dl
-						print_string+=(" "+counter+":"+features.get(i)[j+3]);
-						counter+=1;
-					}	
+		
+			String printer = "";
+			
+			for (int i = 0; i < features_w.get(1).length; i++) {
+				int relevance_label = 0;
+				String query_id = pair[0];
+				int counter = 1;
+				int default_count = i*4;
+				printer += relevance_label + " qid:" + query_id;
+				System.out.println(features_w.size());
+				for (int j = 0; j < features_w.size(); j++) {
+					if(j==0){
+						// System.out.println(Arrays.toString(features_w.get(j)));
+						for (int k = 0; k < 4; k++) {
+							printer += " "+counter+":"+features_w.get(j)[default_count+k];
+							counter++;
+						}
+						default_count += 4;
+					}else{
+						printer += " "+counter+":"+features_w.get(j)[i];
+						counter++;
+					}
 				}
-				for (int j = 0; j < features.get(5).length-1; j++) {
-					//other sim function scores
-					print_string+=(" "+counter+":"+features.get(i)[j]);
-					counter+=1;
-				}
-									
+				printer += " #docno: " + store_simf.get(i) + "\n";
+				System.out.println(printer);
 			}
-			print_string+=(" "+counter+":"+features.get(0)[3]);
-			// print_string+=("#docid" = FT941-sim_ 1);
-			//whole
-			// double[] tf_w = new double[features.get(0).length/4];
-			// double[] idf_w = new double[features.get(0).length/4];
-			// double[] tfidf_w = new double[features.get(0).length/4];
-			// double[] dl = new double[features.get(0).length/4];
-			// //title
-			// double[] tf_t = new double[features.get(0).length/4];
-			// double[] idf_t = new double[features.get(0).length/4];
-			// double[] tfidf_t = new double[features.get(0).length/4];
-			// //body
-			// double[] tf_b = new double[features.get(0).length/4];
-			// double[] idf_b = new double[features.get(0).length/4];
-			// double[] tfidf_b = new double[features.get(0).length/4];
-			// //country
-			// double[] tf_cn = new double[features.get(0).length/4];
-			// double[] idf_cn = new double[features.get(0).length/4];
-			// double[] tfidf_cn = new double[features.get(0).length/4];
-
-			// System.out.println(features.get(0).length);
-			// int counter = 0;
-			// for (int i = 0; i < (features.get(0).length-1); i=i+4) {
-			// 	tfidf_w[counter] = features.get(0)[i];
-			// 	tf_w[counter] = features.get(0)[i+1];
-			// 	idf_w[counter] = features.get(0)[i+2];
-			// 	dl[counter] = features.get(0)[i+3];
-			// 	//title
-			// 	tfidf_t[counter] = features.get(1)[i];
-			// 	tf_t[counter] = features.get(1)[i+1];
-			// 	idf_t[counter] = features.get(1)[i+2];
-			// 	//body
-			// 	tfidf_b[counter] = features.get(2)[i];
-			// 	tf_b[counter] = features.get(2)[i+1];
-			// 	idf_b[counter] = features.get(2)[i+2];
-			// 	//cn
-			// 	tfidf_cn[counter] = features.get(3)[i];
-			// 	tf_cn[counter] = features.get(3)[i+1];
-			// 	idf_cn[counter] = features.get(3)[i+2];
-			// 	counter++;
-			// }
-			// for (int i = 0; i < tfidf.length; i++) {
-			// 	// Document length
-			// 	int relevance_label = 0;
-			// 	String query_id = pair[0];
-			// 	//tf
-			// 	double feature_TF_w = tf_w[i];
-			// 	double feature_TF_t = tf_t[i];
-			// 	double feature_TF_b = tf_b[i];
-			// 	double feature_TF_cn = tf_cn[i];
-			// 	//idf
-			// 	double feature_IDF_w = idf_w[i];
-			// 	double feature_IDF_t = idf_t[i];
-			// 	double feature_IDF_t = idf_b[i];
-			// 	double feature_IDF_cn = idf_c[i];
-			// 	//tfidf
-			// 	double feature_TF_IDF_w = tfidf_w[i];
-			// 	double feature_TF_IDF_t = tfidf_t[i];
-			// 	double feature_TF_IDF_b = tfidf_b[i];
-			// 	double feature_TF_IDF_cn = tfidf_cn[i];
-			// 	//bm25
-			// 	double feature_BM25_w = features.get(4)[i];
-			// 	double feature_BM25_t = features.get(5)[i];
-			// 	double feature_BM25_b = features.get(6)[i];
-			// 	double feature_BM25_cn = features.get(7)[i];
-			// 	//dfr
-			// 	double feature_DFR_w = features.get(8)[i];
-			// 	double feature_DFR_t = features.get(9)[i];
-			// 	double feature_DFR_b = features.get(10)[i];
-			// 	double feature_DFR_cn = features.get(11)[i];
-			// 	//LM
-			// 	double feature_LM_w = features.get(12)[i];
-			// 	double feature_LM_t = features.get(13)[i];
-			// 	double feature_LM_b = features.get(14)[i];
-			// 	double feature_LM_cn = features.get(15)[i];
-			// 	//dl
-			// 	double feature_DL = dl[i];
-			// 	// print format here
-			// 	// <line> .=. <target> qid:<qid> <feature>:<value> <feature>:<value> ... <feature>:<value> # <info>
-			// 	System.out.println(relevance_label + " qid:" + query_id +
-			// 			" 1:" + feature_TF_w +
-			// 			" 2:" + feature_TF_t +
-			// 			" 3:" + feature_TF_b +
-			// 			" 4:" + feature_TF_cn +
-			// 			" 5:" + feature_IDF_w +
-			// 			" 6:" + feature_IDF_t +
-			// 			" 7:" + feature_IDF_b +
-			// 			" 8:" + feature_IDF_cn +
-			// 			" 9:" + feature_TF_IDF_w +
-			// 			" 10:" + feature_TF_IDF_t +
-			// 			" 11:" + feature_TF_IDF_b +
-			// 			" 12:" + feature_TF_IDF_cn + 
-			// 			" 13:" + feature_BM25_w +
-			// 			" 14:" + feature_BM25_t +
-			// 			" 15:" + feature_BM25_b +
-			// 			" 16:" + feature_BM25_cn +
-			// 			" 5:" + feature_DFR +
-			// 			" 5:" + feature_DFR + 
-			// 			" 5:" + feature_DFR + 
-			// 			" 5:" + feature_DFR + 
-			// 			" 6:" + feature_LM + 
-			// 			" 7:" + feature_DL + 
-			// 			" #" +
-			// 			
-			// }
 				
 			//print whole shit
 			Date end = new Date();
@@ -369,7 +250,7 @@ public class BatchSearch {
 	public static double[] doBatchSearch(BufferedReader in, IndexSearcher searcher, String qid, Query query, String runtag)
 			throws IOException {
 		//System.out.println("numTotalHits");
-		System.out.println("feature");
+
 		/*****
 		 *
 		 * MAKE A BOOLEAN QUERY HERE SOMEWHERE
@@ -398,8 +279,7 @@ public class BatchSearch {
 		int start = 0;
 		long end = Math.min(numTotalHits, 1000);
 		// System.out.println("end: "+(int)end);
-		String q_field = query.toString().replaceAll("[()]","").split(":")[0];
-		String[] terms = query.toString().replaceAll("[()]","").replaceAll(q_field,"").split(" ");
+		String[] terms = query.toString().replaceAll("contents:","").split(" ");
 		//""" Loop through all hits for current query """
 		List<Double> result_list = new ArrayList<Double>();
 		for (int i = start; i < (int)end; i++) {
@@ -411,15 +291,7 @@ public class BatchSearch {
 			result_list.add((double)hits[i].score);
 			Document doc = searcher.doc(hits[i].doc);
 			String docno = doc.get("docno");
-			String doc_arr = doc.get(q_field);
-			double doc_len = 0;
-			if(q_field.equals("contents")){
-				doc_len = doc.toString().length();
-			}else if(doc_arr.length() > 1){
-				doc_len = doc_arr.length();
-			}else{
-				doc_len = 0;
-			}
+			double doc_len = doc.toString().length();
 			// This might help us?
 			//System.out.println("NEW DOCUMENT START");
 			//System.out.println("ID: <" + i + ">\tSIMF: <" + runtag.toUpperCase() + ">\tDOCNO: <" + docno + ">");
@@ -438,9 +310,9 @@ public class BatchSearch {
 				double idfs = 0.0;
 				int counter = 1;
 				// System.out.println(explanation);
-				for (int j = 1; j < array.length-1; j=j+8){
+				for (int j = 1; j < array.length; j=j+8){
 					if(array.length>1){
-						String term = array[j].split(q_field+":")[1].split(" ")[0];
+						String term = array[j].replaceAll("[()]","").split("contents:")[1].split(" ")[0];
 						double tf_score = Double.parseDouble(array[j+2].trim().split(" ")[0]);
 						String tfreq = array[j+3].trim().replaceAll("=termFreq="," ").split(" ")[0];
 						double idfreq = Double.parseDouble(array[j+4].trim().split(" ")[0]);
