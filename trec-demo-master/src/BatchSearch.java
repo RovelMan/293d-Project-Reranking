@@ -167,12 +167,13 @@ public class BatchSearch {
 
 			//result is title: full title: query  body:full body:query
 			Query query = parser.parse(line);
-			Query query1 = title_parser.parse(line);
-			Query query2 = body_parser.parse(line);
-			BooleanQuery booleanQuery = new BooleanQuery.Builder()
-			.add(query1, BooleanClause.Occur.SHOULD)
-			.add(query2, BooleanClause.Occur.SHOULD)
+			Query query_title = title_parser.parse(line);
+			Query query_body = body_parser.parse(line);
+			BooleanQuery boolean_title = new BooleanQuery.Builder()
+			.add(query_title, BooleanClause.Occur.SHOULD)
+			.add(query_body, BooleanClause.Occur.SHOULD)
 			.build();
+			// BooleanQuery
 			
 			List<double[]> features = new ArrayList<double[]>();
 			String[] simfunctions = {"default","bm25","dfr", "lm"};

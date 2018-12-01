@@ -29,10 +29,14 @@ import mmap
         Generate the correct file format to be used in ranklib
         Features:
             1 TF
+                whole
+                text
+                headline
+                cn
             2 IDF
             3 TFIDF
             4 BM25
-            5 
+            5  
             6
             5 DL - document length
 
@@ -82,7 +86,8 @@ def lucene():
     os.system('ant')
     os.system('ant IndexTREC')
     # os.system('java -cp "bin:lib/*" BatchSearch -index index/ -queries test-data/title-queries.301-450 -simfn bm25 > ../RankLib/data/letor.txt')
-    os.system('java -cp "bin:lib/*" BatchSearch -index index/ -queries test-data/title-queries.301-450 -simfn bm25')
+    # os.system('java -cp "bin:lib/*" BatchSearch -index index/ -queries test-data/title-queries.301-450 -simfn bm25')
+    os.system('java -cp "bin:lib/*" BatchSearch -index index/ -queries test-data/query_test.txt -simfn bm25')
     sys.stdout.write('  Generating data\n\n')
     f = open('../RankLib/data/letor.txt','r')
     lines = f.readlines()
