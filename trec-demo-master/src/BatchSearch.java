@@ -83,8 +83,14 @@ public class BatchSearch {
 			}
 		}
 
+		Scanner sc = new Scanner(file);
 		
-
+		List<String[]> relevancy = new ArrayList<String[]>();
+		
+		while(sc.hasNextLine()) {
+			relevancy.add(sc.nextLine().split(" "));
+		}
+		sc.close();
 		// creating the reader to read from our indexing
 		IndexReader reader = DirectoryReader.open(FSDirectory.open(new File(index).toPath()));
 		// creating a searcher to search through the indexes https://www.tutorialspoint.com/lucene/lucene_indexsearcher.htm
@@ -211,6 +217,14 @@ public class BatchSearch {
 			for (int i = 0; i < features_w.get(1).length; i++) {
 				int relevance_label = 0;
 				String query_id = pair[0];
+				String docno = store_simf.get(i);
+				int relevance_label = 0;
+				for (String[] r : relevancy) {
+					if (r[0].equals(query_id) && r[2].equals(docno)) {
+						relevance_label = Integer.valueOf(r[3]);
+						break;
+					}
+				}
 				int counter = 1;
 				int default_count = i*4;
 				printer += relevance_label + " qid:" + query_id;
