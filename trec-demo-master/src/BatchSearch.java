@@ -3,8 +3,11 @@ import java.io.File;
 import java.io.FileReader;
 import java.util.List;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.Scanner;
+import java.io.File;
 import java.io.Reader;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -82,7 +85,14 @@ public class BatchSearch {
 			}
 		}
 
+		File file = new File("./test-data/relevancy_test.txt");
+		Scanner sc = new Scanner(file);
 		
+		List<String[]> relevancy = new ArrayList<String[]>();
+		
+		while(sc.hasNextLine()) {
+			relevancy.add(sc.nextLine().split(" "));
+		}
 
 		// creating the reader to read from our indexing
 		IndexReader reader = DirectoryReader.open(FSDirectory.open(new File(index).toPath()));
@@ -199,7 +209,7 @@ public class BatchSearch {
 				}
 				// set similarity function TODO: do actual math
 				searcher.setSimilarity(simfn);
-				double[] sim_features = doBatchSearch(in, searcher, pair[0], query, simstring);
+				double[] sim_features = doBatchSearch(in, searcher, pair[0], query, simstring, relevancy);
 				features.add(sim_features);
 				
 			}
@@ -219,8 +229,15 @@ public class BatchSearch {
 			}
 			for (int i = 0; i < tfidf.length; i++) {
 				// Document length
-				int relevance_label = 0;
 				String query_id = pair[0];
+				String docno = store_simf.get(i);
+				int relevance_label = 0;
+				for (String[] r : relevancy) {
+					if (r[0].equals(query_id) && r[2].equals(docno)) {
+						relevance_label = Integer.valueOf(r[3]);
+						break;
+					}
+				}
 				double feature_1_TF = tf[i];
 				double feature_2_IDF = idf[i];
 				double feature_3_TF_IDF = tfidf[i];
@@ -257,7 +274,7 @@ public class BatchSearch {
 		reader.close();
 	}
 
-	public static double[] doBatchSearch(BufferedReader in, IndexSearcher searcher, String qid, Query query, String runtag)
+	public static double[] doBatchSearch(BufferedReader in, IndexSearcher searcher, String qid, Query query, String runtag, List<String[]> relevancy)
 			throws IOException {
 		//System.out.println("numTotalHits");
 
@@ -274,7 +291,6 @@ public class BatchSearch {
 		// Represents hits returned by IndexSearcher.search(Query,int).
 
 		// Can be 0, 1 or 2
-
 
 		// System.out.println(runtag);
 		// double TF =  searcher.termStatistics();
