@@ -50,7 +50,9 @@ import org.apache.lucene.index.Term;
 import org.apache.lucene.search.DoubleValuesSource;
 /** Simple command-line based search demo. */
 public class BatchSearch {
-	public static List<String[]> store_simf = new ArrayList<String[]>();
+	public static List<double[]> document_lengths = new ArrayList<double[]>();
+	public static List<List<Integer>> relevancy_labels = new ArrayList<List<Integer>>();
+	public static List<List<String>> document_numbers = new ArrayList<List<String>>();
 	private BatchSearch() {
 	}
 
@@ -191,48 +193,15 @@ public class BatchSearch {
 			.build();
 			// BooleanQuery
 			
-			List<List<double[]>> part_list = new ArrayList<List<double[]>>();
-			List<double[]> features_w = new ArrayList<double[]>();
-			List<double[]> features_t = new ArrayList<double[]>();
-			List<double[]> features_b = new ArrayList<double[]>();
-			List<double[]> features_cn = new ArrayList<double[]>();
-			String[] simfunctions = {"default","bm25","dfr", "lm"};
-			Similarity simfn = null;
-			//1 QUERY, ALL SIM FUNCTIONS
-			for (int i = 0; i < simfunctions.length; i++) {
-				String print_string = "";
-				simstring = simfunctions[i];
-				if ("default".equals(simfunctions[i])) {
-					simfn = new ClassicSimilarity();
-				} else if ("bm25".equals(simfunctions[i])) {
-					simfn = new BM25Similarity();
-				} else if ("dfr".equals(simfunctions[i])) {
-					simfn = new DFRSimilarity(new BasicModelP(), new AfterEffectL(), new NormalizationH2());
-				} else if ("lm".equals(simfunctions[i])) {
-					simfn = new LMDirichletSimilarity();
-				}
-				if (simfn == null) {
-					System.out.println(usage);
-					System.out.println("Supported similarity functions:\ndefault: DefaultSimilary (tfidf)");
-					System.out.println("bm25: BM25Similarity (standard parameters)");
-					System.out.println("dfr: Divergence from Randomness model (PL2 variant)");
-					System.out.println("lm: Language model, Dirichlet smoothing");
-					System.exit(0);
-				}
-				// set similarity function TODO: do actual math
-				
+			String print_string = "";
+			//1 QUERY, ALL SIM FUNCTIONS{	
+			// System.out.printf(doBatchSearch(in, searcher, pair[0], query_list, simstring,relevancy));
 
-				
-			}
 			//know that each sim function will return the same amout of documents.
 			//number of docs will vary for each query, though
-			simfn = new ClassicSimilarity();
-			simstring = "default";
-			searcher.setSimilarity(simfn);
-			String feat = doBatchSearch(in, searcher, pair[0], query_list, simstring,relevancy);
+			
 		
 			//print whole shit
-			System.out.printf(feat);
 
 			Date end = new Date();
 			time = time + (end.getTime() - start.getTime());
@@ -266,239 +235,283 @@ public class BatchSearch {
 		// HashMap<String, String> seen = new HashMap<String, String>(1000);
 		// long numTotalHits = results.totalHits;
 		// long end = Math.min(numTotalHits, 1000);
-		List<TopDocs> topdocs = new ArrayList<TopDocs>();
-		List<ScoreDoc[]> query_hits = new ArrayList<ScoreDoc[]>();
-		List<Long> totalHits = new ArrayList<Long>();
-		List<Long> ends = new ArrayList<Long>();
-		int max_hits = 100;
-		for (Query query : query_list) {
-			topdocs.add(searcher.search(query,max_hits));
-		}
-		//Extracting info for each result
-		for (TopDocs result : topdocs) {
-			query_hits.add(result.scoreDocs);
-			totalHits.add(result.totalHits);
-		}
+		String[] simfunctions = {"default","bm25","dfr","lm"};
+		Similarity simfn = null;
+		List<List<String>> docnumbers = new ArrayList<List<String>>(); //return once
+		List<List<Integer>> labels = new ArrayList<List<Integer>>(); //return once
+		List<List<Double>> whole = new ArrayList<List<Double>>(); //return
+		List<List<Double>> title = new ArrayList<List<Double>>(); //return
+		List<List<Double>> body = new ArrayList<List<Double>>(); //return
+		List<List<Double>> country = new ArrayList<List<Double>>(); // return
+		List<double[]> lengths = new ArrayList<double[]>(); //return once
 
-		int start = 0;
-		//Adding length of hits for each query
-		for (long hits : totalHits) {
-			ends.add(Math.min(hits, max_hits));
-		}
-		//got results for each query: topdocs, hits, seen and total hits. All on the form list.size() = 4
-		//""" set start to 0 and end to min to min hits """
-		String field = query_list.get(0).toString().replaceAll("[()]","").split(":")[0].split(" ")[0];
-		//""" Loop through all hits for all queries """
-		int num_docs = ends.get(0).intValue();
-		List<Document> docs_found = new ArrayList<Document>();
-		List<String> doc_numbers = new ArrayList<String>();
-		List<Integer> relevances = new ArrayList<Integer>();
-		List<Double> feat_w = new ArrayList<Double>(); 
-		List<Double> feat_t = new ArrayList<Double>();
-		List<Double> feat_b = new ArrayList<Double>();
-		List<Double> feat_cn = new ArrayList<Double>();
-		double[] doc_lengths = new double[num_docs];
-		for (int i = start; i < ends.get(0); i++) {
-			// There are duplicate document numbers in the FR collection, so only output a given
-			// docno once.
-			Boolean t_exist = false;
-			Boolean b_exist = false;
-			Boolean cn_exist = false;
-			String explanation = "";	
-			//query_hits(0) = whole, query_hits(1) = title, query_hits(2) = body, query_hits(3) = county,
-			Document doc_w = searcher.doc(query_hits.get(0)[i].doc);
-			String docno_w = doc_w.get("docno");
-			docs_found.add(doc_w);
-			doc_numbers.add(docno_w);
-			for (String[] r : relevancy) {
-				if (r[0].equals(qid) && r[2].equals(docno_w)) {
-					relevances.add(Integer.valueOf(r[3]));
-					break;
-				}else{
-					relevances.add(0);
-				}
+		for (String sim : simfunctions) {
+			String print_string = "";
+			if ("default".equals(sim)) {
+				simfn = new ClassicSimilarity();
+			} else if ("bm25".equals(sim)) {
+				simfn = new BM25Similarity();
+			} else if ("dfr".equals(sim)) {
+				simfn = new DFRSimilarity(new BasicModelP(), new AfterEffectL(), new NormalizationH2());
+			} else if ("lm".equals(sim)) {
+				simfn = new LMDirichletSimilarity();
+			}
+			if (simfn == null) {
+				System.out.println("Supported similarity functions:\ndefault: DefaultSimilary (tfidf)");
+				System.out.println("bm25: BM25Similarity (standard parameters)");
+				System.out.println("dfr: Divergence from Randomness model (PL2 variant)");
+				System.out.println("lm: Language model, Dirichlet smoothing");
+				System.exit(0);
+			}
+			// set similarity function TODO: do actual math
+			searcher.setSimilarity(simfn);
+
+			List<TopDocs> topdocs = new ArrayList<TopDocs>();
+			List<ScoreDoc[]> query_hits = new ArrayList<ScoreDoc[]>();
+			List<Long> totalHits = new ArrayList<Long>();
+			List<Long> ends = new ArrayList<Long>();
+			int max_hits = 100;
+			for (Query query : query_list) {
+				topdocs.add(searcher.search(query,max_hits));
+			}
+			//Extracting info for each result
+			for (TopDocs result : topdocs) {
+				query_hits.add(result.scoreDocs);
+				totalHits.add(result.totalHits);
 			}
 
-			doc_lengths[i] = doc_w.toString().length();
-			feat_w.add((double)query_hits.get(0)[i].score);
-			explanation = searcher.explain(query_list.get(0), i).toString();
-			if (("default").equals(runtag)) {
-				String[] array = explanation.split("\n");
-				double tfs = 0.0;
-				double idfs = 0.0;
-				int counter = 1;
-				// System.out.println(explanation);
-				for (int j = 1; j < array.length; j=j+8){
-					if(array.length>1){
-						double tf_score = Double.parseDouble(array[j+2].trim().split(" ")[0]);
-						String tfreq = array[j+3].trim().replaceAll("=termFreq="," ").split(" ")[0];
-						double idfreq = Double.parseDouble(array[j+4].trim().split(" ")[0]);
-						tfs=tfs+tf_score;
-						idfs=idfs+idfreq;
-						counter++;
+			int start = 0;
+			//Adding length of hits for each query
+			for (long hits : totalHits) {
+				ends.add(Math.min(hits, max_hits));
+			}
+			//got results for each query: topdocs, hits, seen and total hits. All on the form list.size() = 4
+			//""" set start to 0 and end to min to min hits """
+			String field = query_list.get(0).toString().replaceAll("[()]","").split(":")[0].split(" ")[0];
+			//""" Loop through all hits for all queries """
+			int num_docs = ends.get(0).intValue();
+			List<String> doc_numbers = new ArrayList<String>(); //return once
+			List<Integer> relevances = new ArrayList<Integer>(); //return once
+			List<Double> feat_w = new ArrayList<Double>(); //return
+			List<Double> feat_t = new ArrayList<Double>(); //return
+			List<Double> feat_b = new ArrayList<Double>(); //return
+			List<Double> feat_cn = new ArrayList<Double>(); // return
+			double[] doc_lengths = new double[num_docs]; //return once
+			for (int i = start; i < ends.get(0); i++) {
+				// There are duplicate document numbers in the FR collection, so only output a given
+				// docno once.
+				Boolean t_exist = false;
+				Boolean b_exist = false;
+				Boolean cn_exist = false;
+				String explanation = "";	
+				//query_hits(0) = whole, query_hits(1) = title, query_hits(2) = body, query_hits(3) = county,
+				Document doc_w = searcher.doc(query_hits.get(0)[i].doc);
+				String docno_w = doc_w.get("docno");
+				doc_numbers.add(docno_w);
+				for (String[] r : relevancy) {
+					if (r[2].equals(docno_w)) {
+						System.out.println("wtf");
+						relevances.add(Integer.valueOf(r[3]));
+						break;
+					}else{
+						relevances.add(0);
 					}
 				}
-				tfs = tfs/counter;
-				idfs = idfs/counter;
-				feat_w.add(tfs);
-				feat_w.add(idfs);
-			}
-			// title
-			for (int j = 0; j < ends.get(1); j++) {
-				Document doc_t = searcher.doc(query_hits.get(1)[j].doc);
-				String docno_t = doc_t.get("docno");
-				if(docno_t.equals(docno_w)){
-					t_exist = true;
-					feat_t.add((double)query_hits.get(1)[j].score);
-					if (("default").equals(runtag)) {
-						explanation = searcher.explain(query_list.get(1), j).toString();
-						String[] array = explanation.split("\n");
-						double tfs = 0.0;
-						double idfs = 0.0;
-						int counter = 1;
-						// System.out.println(explanation);
-						for (int k = 1; k < array.length; k=k+8){
-							if(array.length>1){
-								double tf_score = Double.parseDouble(array[k+2].trim().split(" ")[0]);
-								String tfreq = array[k+3].trim().replaceAll("=termFreq="," ").split(" ")[0];
-								double idfreq = Double.parseDouble(array[k+4].trim().split(" ")[0]);
-								tfs=tfs+tf_score;
-								idfs=idfs+idfreq;
-								counter++;
-							}
-						}
-						tfs = tfs/counter;
-						idfs = idfs/counter;
-						feat_t.add(tfs);
-						feat_t.add(idfs);
-						break;
 
+				doc_lengths[i] = doc_w.toString().length();
+				feat_w.add((double)query_hits.get(0)[i].score);
+				explanation = searcher.explain(query_list.get(0), i).toString();
+				if (("default").equals(sim)) {
+					String[] array = explanation.split("\n");
+					double tfs = 0.0;
+					double idfs = 0.0;
+					int counter = 1;
+					// System.out.println(explanation);
+					for (int j = 1; j < array.length; j=j+8){
+						if(array.length>1){
+							double tf_score = Double.parseDouble(array[j+2].trim().split(" ")[0]);
+							String tfreq = array[j+3].trim().replaceAll("=termFreq="," ").split(" ")[0];
+							double idfreq = Double.parseDouble(array[j+4].trim().split(" ")[0]);
+							tfs=tfs+tf_score;
+							idfs=idfs+idfreq;
+							counter++;
+						}
+					}
+					tfs = tfs/counter;
+					idfs = idfs/counter;
+					feat_w.add(tfs);
+					feat_w.add(idfs);
+				}
+				// title
+				for (int j = 0; j < ends.get(1); j++) {
+					Document doc_t = searcher.doc(query_hits.get(1)[j].doc);
+					String docno_t = doc_t.get("docno");
+					if(docno_t.equals(docno_w)){
+						t_exist = true;
+						feat_t.add((double)query_hits.get(1)[j].score);
+						if (("default").equals(sim)) {
+							explanation = searcher.explain(query_list.get(1), j).toString();
+							String[] array = explanation.split("\n");
+							double tfs = 0.0;
+							double idfs = 0.0;
+							int counter = 1;
+							// System.out.println(explanation);
+							for (int k = 1; k < array.length; k=k+8){
+								if(array.length>1){
+									double tf_score = Double.parseDouble(array[k+2].trim().split(" ")[0]);
+									String tfreq = array[k+3].trim().replaceAll("=termFreq="," ").split(" ")[0];
+									double idfreq = Double.parseDouble(array[k+4].trim().split(" ")[0]);
+									tfs=tfs+tf_score;
+									idfs=idfs+idfreq;
+									counter++;
+								}
+							}
+							tfs = tfs/counter;
+							idfs = idfs/counter;
+							feat_t.add(tfs);
+							feat_t.add(idfs);
+							break;
+
+						}
 					}
 				}
-			}
-			//body
-			for (int j = 0; j < ends.get(2); j++) {
-				Document doc_b = searcher.doc(query_hits.get(2)[j].doc);
-				String docno_b = doc_b.get("docno");
-				if(docno_b.equals(docno_w)){
-					b_exist = true;
-					feat_b.add((double)query_hits.get(2)[j].score);
-					if (("default").equals(runtag)) {
-						explanation = searcher.explain(query_list.get(2), j).toString();
-						String[] array = explanation.split("\n");
-						double tfs = 0.0;
-						double idfs = 0.0;
-						int counter = 1;
-						// System.out.println(explanation);
-						for (int k = 1; k < array.length; k=k+8){
-							if(array.length>1){
-								double tf_score = Double.parseDouble(array[k+2].trim().split(" ")[0]);
-								String tfreq = array[k+3].trim().replaceAll("=termFreq="," ").split(" ")[0];
-								double idfreq = Double.parseDouble(array[k+4].trim().split(" ")[0]);
-								tfs=tfs+tf_score;
-								idfs=idfs+idfreq;
-								counter++;
+				//body
+				for (int j = 0; j < ends.get(2); j++) {
+					Document doc_b = searcher.doc(query_hits.get(2)[j].doc);
+					String docno_b = doc_b.get("docno");
+					if(docno_b.equals(docno_w)){
+						b_exist = true;
+						feat_b.add((double)query_hits.get(2)[j].score);
+						if (("default").equals(sim)) {
+							explanation = searcher.explain(query_list.get(2), j).toString();
+							String[] array = explanation.split("\n");
+							double tfs = 0.0;
+							double idfs = 0.0;
+							int counter = 1;
+							// System.out.println(explanation);
+							for (int k = 1; k < array.length; k=k+8){
+								if(array.length>1){
+									double tf_score = Double.parseDouble(array[k+2].trim().split(" ")[0]);
+									String tfreq = array[k+3].trim().replaceAll("=termFreq="," ").split(" ")[0];
+									double idfreq = Double.parseDouble(array[k+4].trim().split(" ")[0]);
+									tfs=tfs+tf_score;
+									idfs=idfs+idfreq;
+									counter++;
+								}
 							}
-						}
-						tfs = tfs/counter;
-						idfs = idfs/counter;
-						feat_b.add(tfs);
-						feat_b.add(idfs);
-						break;
-					}		
-				}
-			}
-			//cn
-			for (int j = 0; j < ends.get(3); j++) {
-				Document doc_cn = searcher.doc(query_hits.get(3)[j].doc);
-				String docno_cn = doc_cn.get("docno");
-				if(docno_cn.equals(docno_w)){
-					cn_exist = true;
-					feat_cn.add((double)query_hits.get(3)[j].score);
-					if (("default").equals(runtag)) {
-						explanation = searcher.explain(query_list.get(3), j).toString();
-						String[] array = explanation.split("\n");
-						double tfs = 0.0;
-						double idfs = 0.0;
-						int counter = 1;
-						// System.out.println(explanation);
-						for (int k = 1; k < array.length; k=k+8){
-							if(array.length>1){
-								double tf_score = Double.parseDouble(array[k+2].trim().split(" ")[0]);
-								String tfreq = array[k+3].trim().replaceAll("=termFreq="," ").split(" ")[0];
-								double idfreq = Double.parseDouble(array[k+4].trim().split(" ")[0]);
-								tfs=tfs+tf_score;
-								idfs=idfs+idfreq;
-								counter++;
-							}
-						}
-						tfs = tfs/counter;
-						idfs = idfs/counter;
-						feat_cn.add(tfs);
-						feat_cn.add(idfs);
-						break;
+							tfs = tfs/counter;
+							idfs = idfs/counter;
+							feat_b.add(tfs);
+							feat_b.add(idfs);
+							break;
+						}		
 					}
 				}
+				//cn
+				for (int j = 0; j < ends.get(3); j++) {
+					Document doc_cn = searcher.doc(query_hits.get(3)[j].doc);
+					String docno_cn = doc_cn.get("docno");
+					if(docno_cn.equals(docno_w)){
+						cn_exist = true;
+						feat_cn.add((double)query_hits.get(3)[j].score);
+						if (("default").equals(sim)) {
+							explanation = searcher.explain(query_list.get(3), j).toString();
+							String[] array = explanation.split("\n");
+							double tfs = 0.0;
+							double idfs = 0.0;
+							int counter = 1;
+							// System.out.println(explanation);
+							for (int k = 1; k < array.length; k=k+8){
+								if(array.length>1){
+									double tf_score = Double.parseDouble(array[k+2].trim().split(" ")[0]);
+									String tfreq = array[k+3].trim().replaceAll("=termFreq="," ").split(" ")[0];
+									double idfreq = Double.parseDouble(array[k+4].trim().split(" ")[0]);
+									tfs=tfs+tf_score;
+									idfs=idfs+idfreq;
+									counter++;
+								}
+							}
+							tfs = tfs/counter;
+							idfs = idfs/counter;
+							feat_cn.add(tfs);
+							feat_cn.add(idfs);
+							break;
+						}
+					}
+				}
+				if(!t_exist){
+					if(("default").equals(sim)){
+						feat_t.add(0.0);
+						feat_t.add(0.0);
+						feat_t.add(0.0);
+					}else{
+						feat_t.add(0.0);
+					}
+					
+				}
+				if(!b_exist){
+					if(("default").equals(sim)){
+						feat_b.add(0.0);
+						feat_b.add(0.0);
+						feat_b.add(0.0);
+					}else{
+						feat_b.add(0.0);
+					}
+					
+				}	
+				if(!cn_exist){
+					if(("default").equals(sim)){
+						feat_cn.add(0.0);
+						feat_cn.add(0.0);
+						feat_cn.add(0.0);
+					}else{
+						feat_cn.add(0.0);
+					}
+					
+				}		
 			}
-			if(!t_exist){
-				if(("default").equals(runtag)){
-					feat_t.add(0.0);
-					feat_t.add(0.0);
-					feat_t.add(0.0);
-				}else{
-					feat_t.add(0.0);
-				}
-				
+			
+			if (sim.equals("default")) {
+				docnumbers.add(doc_numbers);
+				labels.add(relevances);
+				lengths.add(doc_lengths);
 			}
-			if(!b_exist){
-				if(("default").equals(runtag)){
-					feat_b.add(0.0);
-					feat_b.add(0.0);
-					feat_b.add(0.0);
-				}else{
-					feat_b.add(0.0);
-				}
-				
-			}	
-			if(!cn_exist){
-				if(("default").equals(runtag)){
-					feat_cn.add(0.0);
-					feat_cn.add(0.0);
-					feat_cn.add(0.0);
-				}else{
-					feat_cn.add(0.0);
-				}
-				
-			}		
+			whole.add(feat_w);
+			title.add(feat_t);
+			body.add(feat_b);
+			country.add(feat_cn);
 		}
 		String printer = "";
-		for (int i = 0; i < docs_found.size(); i++) {
+		for (int i = 0; i < docnumbers.get(0).size(); i++) {
 			int feat_num=1;
-			printer+=relevances.get(i)+" qid: "+qid;
-			if(("default").equals(runtag)){
-				int def_count = i*3;
-				for (int j = 0; j < 3; j++) {
-					printer += " "+feat_num+":" +feat_w.get(def_count+j);
+			printer+=labels.get(0).get(i)+" qid:"+qid;
+			for (int k = 0; k < simfunctions.length; k++) {
+				if(("default").equals(simfunctions[k])){
+					int def_count = i*3;
+					for (int j = 0; j < 3; j++) {
+						printer += " "+feat_num+":" +whole.get(k).get(def_count+j);
+						feat_num++;
+						printer += " "+feat_num+":" +title.get(k).get(def_count+j);
+						feat_num++;
+						printer += " "+feat_num+":" +body.get(k).get(def_count+j);
+						feat_num++;
+						printer += " "+feat_num+":" +country.get(k).get(def_count+j);
+						feat_num++;
+					}
+				}else{
+					printer += " "+feat_num+":" +whole.get(k).get(i);
 					feat_num++;
-					printer += " "+feat_num+":" +feat_t.get(def_count+j);
+					printer += " "+feat_num+":" +title.get(k).get(i);
 					feat_num++;
-					printer += " "+feat_num+":" +feat_b.get(def_count+j);
+					printer += " "+feat_num+":" +body.get(k).get(i);
 					feat_num++;
-					printer += " "+feat_num+":" +feat_cn.get(def_count+j);
+					printer += " "+feat_num+":" +country.get(k).get(i);
 					feat_num++;
 				}
-			}else{
-				printer += " "+feat_num+":" +feat_w.get(i);
-				feat_num++;
-				printer += " "+feat_num+":" +feat_t.get(i);
-				feat_num++;
-				printer += " "+feat_num+":" +feat_b.get(i);
-				feat_num++;
-				printer += " "+feat_num+":" +feat_cn.get(i);
-				feat_num++;
+				
 			}
-			printer+=" "+feat_num+":"+doc_lengths[i];
-			printer+=" #docno: "+doc_numbers.get(i)+"\n";	
+			printer+=" "+feat_num+":"+lengths.get(0)[i];
+			printer+=" #docno: "+docnumbers.get(0).get(i)+"\n";
 		}
 
 		return printer;
