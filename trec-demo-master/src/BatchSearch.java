@@ -83,7 +83,7 @@ public class BatchSearch {
 				i++;
 			}
 		}
-		File file = new File("./test-data/relevancy_test.txt");
+		File file = new File("./test-data/qrels.trec6-8.nocr");
 		Scanner sc = new Scanner(file);
 		
 		List<String[]> relevancy = new ArrayList<String[]>();
@@ -311,6 +311,7 @@ public class BatchSearch {
 			docs_found.add(doc_w);
 			doc_numbers.add(docno_w);
 			for (String[] r : relevancy) {
+				//System.out.println("<RELEVANCY> " + r[0] + " = " + qid + ", " + r[2] + " = " + docno_w);
 				if (r[0].equals(qid) && r[2].equals(docno_w)) {
 					relevances.add(Integer.valueOf(r[3]));
 					break;
