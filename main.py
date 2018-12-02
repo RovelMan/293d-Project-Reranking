@@ -107,6 +107,7 @@ def lucene():
     os.system('ant IndexTREC')
     # os.system('java -cp "bin:lib/*" BatchSearch -index index/ -queries test-data/title-queries.301-450 -simfn bm25 > ../RankLib/data/letor.txt')
     # os.system('java -cp "bin:lib/*" BatchSearch -index index/ -queries test-data/title-queries.301-450 -simfn bm25')
+    # os.system('java -cp "bin:lib/*" BatchSearch -index index/ -queries test-data/query_test.txt -simfn bm25 > ../RankLib/data/test_out.txt')
     os.system('java -cp "bin:lib/*" BatchSearch -index index/ -queries test-data/query_test.txt -simfn bm25')
     sys.stdout.write('  Generating data\n\n')
     f = open('../RankLib/data/letor.txt','r')

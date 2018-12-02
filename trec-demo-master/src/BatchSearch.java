@@ -7,6 +7,7 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Arrays;
 import java.io.Reader;
+import java.util.Scanner;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -49,7 +50,7 @@ import org.apache.lucene.index.Term;
 import org.apache.lucene.search.DoubleValuesSource;
 /** Simple command-line based search demo. */
 public class BatchSearch {
-	public static List<String> store_simf = new ArrayList<String>();
+	public static List<String[]> store_simf = new ArrayList<String[]>();
 	private BatchSearch() {
 	}
 
@@ -82,7 +83,7 @@ public class BatchSearch {
 				i++;
 			}
 		}
-
+		File file = new File("./test-data/relevancy_test.txt");
 		Scanner sc = new Scanner(file);
 		
 		List<String[]> relevancy = new ArrayList<String[]>();
@@ -108,11 +109,14 @@ public class BatchSearch {
 		QueryParser parser = new QueryParser("contents", analyzer);
 		QueryParser title_parser = new QueryParser("title", analyzer);
 		QueryParser body_parser = new QueryParser("body", analyzer);
+		QueryParser cn_parser = new QueryParser("cn",analyzer);
 
 		double time = 0.;
 		int query_count = 0;
 		Date start_total = new Date();
 		// while still more queries--> search the current query
+		int tot_count = 0;
+		//FOR EACH QUERY
 		while (true) {
 			Date start = new Date();
 			String line = in.readLine(); // read querey
@@ -173,18 +177,28 @@ public class BatchSearch {
 			*/
 
 			//result is title: full title: query  body:full body:query
+			List<Query> query_list = new ArrayList<Query>();
 			Query query = parser.parse(line);
 			Query query_title = title_parser.parse(line);
 			Query query_body = body_parser.parse(line);
+			Query query_cn = cn_parser.parse(line);
+			query_list.addAll(Arrays.asList(query,query_title,query_body,query_cn));
+
+			List<BooleanQuery> boolean_list = new ArrayList<BooleanQuery>();
 			BooleanQuery boolean_title = new BooleanQuery.Builder()
 			.add(query_title, BooleanClause.Occur.SHOULD)
 			.add(query_body, BooleanClause.Occur.SHOULD)
 			.build();
 			// BooleanQuery
 			
+			List<List<double[]>> part_list = new ArrayList<List<double[]>>();
 			List<double[]> features_w = new ArrayList<double[]>();
+			List<double[]> features_t = new ArrayList<double[]>();
+			List<double[]> features_b = new ArrayList<double[]>();
+			List<double[]> features_cn = new ArrayList<double[]>();
 			String[] simfunctions = {"default","bm25","dfr", "lm"};
 			Similarity simfn = null;
+			//1 QUERY, ALL SIM FUNCTIONS
 			for (int i = 0; i < simfunctions.length; i++) {
 				String print_string = "";
 				simstring = simfunctions[i];
@@ -206,47 +220,20 @@ public class BatchSearch {
 					System.exit(0);
 				}
 				// set similarity function TODO: do actual math
-				searcher.setSimilarity(simfn);
-				double[] content_feat = doBatchSearch(in, searcher, pair[0], query, simstring);
-				features_w.add(content_feat);
+				
+
 				
 			}
+			//know that each sim function will return the same amout of documents.
+			//number of docs will vary for each query, though
+			simfn = new ClassicSimilarity();
+			simstring = "default";
+			searcher.setSimilarity(simfn);
+			String feat = doBatchSearch(in, searcher, pair[0], query_list, simstring,relevancy);
 		
-			String printer = "";
-			
-			for (int i = 0; i < features_w.get(1).length; i++) {
-				int relevance_label = 0;
-				String query_id = pair[0];
-				String docno = store_simf.get(i);
-				int relevance_label = 0;
-				for (String[] r : relevancy) {
-					if (r[0].equals(query_id) && r[2].equals(docno)) {
-						relevance_label = Integer.valueOf(r[3]);
-						break;
-					}
-				}
-				int counter = 1;
-				int default_count = i*4;
-				printer += relevance_label + " qid:" + query_id;
-				System.out.println(features_w.size());
-				for (int j = 0; j < features_w.size(); j++) {
-					if(j==0){
-						// System.out.println(Arrays.toString(features_w.get(j)));
-						for (int k = 0; k < 4; k++) {
-							printer += " "+counter+":"+features_w.get(j)[default_count+k];
-							counter++;
-						}
-						default_count += 4;
-					}else{
-						printer += " "+counter+":"+features_w.get(j)[i];
-						counter++;
-					}
-				}
-				printer += " #docno: " + store_simf.get(i) + "\n";
-				System.out.println(printer);
-			}
-				
 			//print whole shit
+			System.out.printf(feat);
+
 			Date end = new Date();
 			time = time + (end.getTime() - start.getTime());
 			query_count = query_count + 1;
@@ -261,9 +248,8 @@ public class BatchSearch {
 		reader.close();
 	}
 
-	public static double[] doBatchSearch(BufferedReader in, IndexSearcher searcher, String qid, Query query, String runtag)
+	public static String doBatchSearch(BufferedReader in, IndexSearcher searcher, String qid, List<Query> query_list, String runtag, List<String[]> relevancy)
 			throws IOException {
-		//System.out.println("numTotalHits");
 
 		/*****
 		 *
@@ -273,51 +259,69 @@ public class BatchSearch {
 		 * booleanQuery.add(query);
 		 *
 		*****/
-
-
 		// Represents hits returned by IndexSearcher.search(Query,int).
 
-		// Can be 0, 1 or 2
+		// TopDocs results = searcher.search(query, 1000); // Finds the top 1000 hits for query.
+		// ScoreDoc[] hits = results.scoreDocs;
+		// HashMap<String, String> seen = new HashMap<String, String>(1000);
+		// long numTotalHits = results.totalHits;
+		// long end = Math.min(numTotalHits, 1000);
+		List<TopDocs> topdocs = new ArrayList<TopDocs>();
+		List<ScoreDoc[]> query_hits = new ArrayList<ScoreDoc[]>();
+		List<Long> totalHits = new ArrayList<Long>();
+		List<Long> ends = new ArrayList<Long>();
+		int max_hits = 100;
+		for (Query query : query_list) {
+			topdocs.add(searcher.search(query,max_hits));
+		}
+		//Extracting info for each result
+		for (TopDocs result : topdocs) {
+			query_hits.add(result.scoreDocs);
+			totalHits.add(result.totalHits);
+		}
 
-
-		// System.out.println(runtag);
-		// double TF =  searcher.termStatistics();
-		// double DL = searcher.doc.getLength();
-		TopDocs results = searcher.search(query, 1000); // Finds the top 1000 hits for query.
-		ScoreDoc[] hits = results.scoreDocs;
-		HashMap<String, String> seen = new HashMap<String, String>(1000);
-		long numTotalHits = results.totalHits;		
-		//System.out.println("	" + numTotalHits);
-
-		//""" set start to 0 and end to min to min hits """
 		int start = 0;
-		long end = Math.min(numTotalHits, 1000);
-		// System.out.println("end: "+(int)end);
-		String[] terms = query.toString().replaceAll("contents:","").split(" ");
-		//""" Loop through all hits for current query """
-		List<Double> result_list = new ArrayList<Double>();
-		for (int i = start; i < (int)end; i++) {
-			
-
+		//Adding length of hits for each query
+		for (long hits : totalHits) {
+			ends.add(Math.min(hits, max_hits));
+		}
+		//got results for each query: topdocs, hits, seen and total hits. All on the form list.size() = 4
+		//""" set start to 0 and end to min to min hits """
+		String field = query_list.get(0).toString().replaceAll("[()]","").split(":")[0].split(" ")[0];
+		//""" Loop through all hits for all queries """
+		int num_docs = ends.get(0).intValue();
+		List<Document> docs_found = new ArrayList<Document>();
+		List<String> doc_numbers = new ArrayList<String>();
+		List<Integer> relevances = new ArrayList<Integer>();
+		List<Double> feat_w = new ArrayList<Double>(); 
+		List<Double> feat_t = new ArrayList<Double>();
+		List<Double> feat_b = new ArrayList<Double>();
+		List<Double> feat_cn = new ArrayList<Double>();
+		double[] doc_lengths = new double[num_docs];
+		for (int i = start; i < ends.get(0); i++) {
 			// There are duplicate document numbers in the FR collection, so only output a given
 			// docno once.
+			Boolean t_exist = false;
+			Boolean b_exist = false;
+			Boolean cn_exist = false;
 			String explanation = "";	
-			result_list.add((double)hits[i].score);
-			Document doc = searcher.doc(hits[i].doc);
-			String docno = doc.get("docno");
-			double doc_len = doc.toString().length();
-			// This might help us?
-			//System.out.println("NEW DOCUMENT START");
-			//System.out.println("ID: <" + i + ">\tSIMF: <" + runtag.toUpperCase() + ">\tDOCNO: <" + docno + ">");
-			explanation = searcher.explain(query, i).toString();
-			// System.out.println(explanation);
-			
-			store_simf.add(docno);
-			if (seen.containsKey(docno)) {
-				continue;
+			//query_hits(0) = whole, query_hits(1) = title, query_hits(2) = body, query_hits(3) = county,
+			Document doc_w = searcher.doc(query_hits.get(0)[i].doc);
+			String docno_w = doc_w.get("docno");
+			docs_found.add(doc_w);
+			doc_numbers.add(docno_w);
+			for (String[] r : relevancy) {
+				if (r[0].equals(qid) && r[2].equals(docno_w)) {
+					relevances.add(Integer.valueOf(r[3]));
+					break;
+				}else{
+					relevances.add(0);
+				}
 			}
-			seen.put(docno, docno);
-			
+
+			doc_lengths[i] = doc_w.toString().length();
+			feat_w.add((double)query_hits.get(0)[i].score);
+			explanation = searcher.explain(query_list.get(0), i).toString();
 			if (("default").equals(runtag)) {
 				String[] array = explanation.split("\n");
 				double tfs = 0.0;
@@ -326,11 +330,9 @@ public class BatchSearch {
 				// System.out.println(explanation);
 				for (int j = 1; j < array.length; j=j+8){
 					if(array.length>1){
-						String term = array[j].replaceAll("[()]","").split("contents:")[1].split(" ")[0];
 						double tf_score = Double.parseDouble(array[j+2].trim().split(" ")[0]);
 						String tfreq = array[j+3].trim().replaceAll("=termFreq="," ").split(" ")[0];
 						double idfreq = Double.parseDouble(array[j+4].trim().split(" ")[0]);
-						String docFreq = array[j+5].trim().split(" ")[0];
 						tfs=tfs+tf_score;
 						idfs=idfs+idfreq;
 						counter++;
@@ -338,26 +340,168 @@ public class BatchSearch {
 				}
 				tfs = tfs/counter;
 				idfs = idfs/counter;
-				result_list.add(tfs);
-				result_list.add(idfs);
-				result_list.add(doc_len);
-			} else if (("bm25").equals(runtag)) {
-				// BM25 score
-			} else if (("dfr").equals(runtag)) {
-				// DFR score
-			} else if (("lm").equals(runtag)) {
-				// 
-			} else {
-				//nothing
+				feat_w.add(tfs);
+				feat_w.add(idfs);
 			}
+			// title
+			for (int j = 0; j < ends.get(1); j++) {
+				Document doc_t = searcher.doc(query_hits.get(1)[j].doc);
+				String docno_t = doc_t.get("docno");
+				if(docno_t.equals(docno_w)){
+					t_exist = true;
+					feat_t.add((double)query_hits.get(1)[j].score);
+					if (("default").equals(runtag)) {
+						explanation = searcher.explain(query_list.get(1), j).toString();
+						String[] array = explanation.split("\n");
+						double tfs = 0.0;
+						double idfs = 0.0;
+						int counter = 1;
+						// System.out.println(explanation);
+						for (int k = 1; k < array.length; k=k+8){
+							if(array.length>1){
+								double tf_score = Double.parseDouble(array[k+2].trim().split(" ")[0]);
+								String tfreq = array[k+3].trim().replaceAll("=termFreq="," ").split(" ")[0];
+								double idfreq = Double.parseDouble(array[k+4].trim().split(" ")[0]);
+								tfs=tfs+tf_score;
+								idfs=idfs+idfreq;
+								counter++;
+							}
+						}
+						tfs = tfs/counter;
+						idfs = idfs/counter;
+						feat_t.add(tfs);
+						feat_t.add(idfs);
+						break;
+
+					}
+				}
+			}
+			//body
+			for (int j = 0; j < ends.get(2); j++) {
+				Document doc_b = searcher.doc(query_hits.get(2)[j].doc);
+				String docno_b = doc_b.get("docno");
+				if(docno_b.equals(docno_w)){
+					b_exist = true;
+					feat_b.add((double)query_hits.get(2)[j].score);
+					if (("default").equals(runtag)) {
+						explanation = searcher.explain(query_list.get(2), j).toString();
+						String[] array = explanation.split("\n");
+						double tfs = 0.0;
+						double idfs = 0.0;
+						int counter = 1;
+						// System.out.println(explanation);
+						for (int k = 1; k < array.length; k=k+8){
+							if(array.length>1){
+								double tf_score = Double.parseDouble(array[k+2].trim().split(" ")[0]);
+								String tfreq = array[k+3].trim().replaceAll("=termFreq="," ").split(" ")[0];
+								double idfreq = Double.parseDouble(array[k+4].trim().split(" ")[0]);
+								tfs=tfs+tf_score;
+								idfs=idfs+idfreq;
+								counter++;
+							}
+						}
+						tfs = tfs/counter;
+						idfs = idfs/counter;
+						feat_b.add(tfs);
+						feat_b.add(idfs);
+						break;
+					}		
+				}
+			}
+			//cn
+			for (int j = 0; j < ends.get(3); j++) {
+				Document doc_cn = searcher.doc(query_hits.get(3)[j].doc);
+				String docno_cn = doc_cn.get("docno");
+				if(docno_cn.equals(docno_w)){
+					cn_exist = true;
+					feat_cn.add((double)query_hits.get(3)[j].score);
+					if (("default").equals(runtag)) {
+						explanation = searcher.explain(query_list.get(3), j).toString();
+						String[] array = explanation.split("\n");
+						double tfs = 0.0;
+						double idfs = 0.0;
+						int counter = 1;
+						// System.out.println(explanation);
+						for (int k = 1; k < array.length; k=k+8){
+							if(array.length>1){
+								double tf_score = Double.parseDouble(array[k+2].trim().split(" ")[0]);
+								String tfreq = array[k+3].trim().replaceAll("=termFreq="," ").split(" ")[0];
+								double idfreq = Double.parseDouble(array[k+4].trim().split(" ")[0]);
+								tfs=tfs+tf_score;
+								idfs=idfs+idfreq;
+								counter++;
+							}
+						}
+						tfs = tfs/counter;
+						idfs = idfs/counter;
+						feat_cn.add(tfs);
+						feat_cn.add(idfs);
+						break;
+					}
+				}
+			}
+			if(!t_exist){
+				if(("default").equals(runtag)){
+					feat_t.add(0.0);
+					feat_t.add(0.0);
+					feat_t.add(0.0);
+				}else{
+					feat_t.add(0.0);
+				}
+				
+			}
+			if(!b_exist){
+				if(("default").equals(runtag)){
+					feat_b.add(0.0);
+					feat_b.add(0.0);
+					feat_b.add(0.0);
+				}else{
+					feat_b.add(0.0);
+				}
+				
+			}	
+			if(!cn_exist){
+				if(("default").equals(runtag)){
+					feat_cn.add(0.0);
+					feat_cn.add(0.0);
+					feat_cn.add(0.0);
+				}else{
+					feat_cn.add(0.0);
+				}
+				
+			}		
 		}
-		int result_size = result_list.size();
-		double[] res_list = new double[result_size];
-		for (int j = 0; j < result_size; j++) {
-			res_list[j] = result_list.get(j);
-			// System.out.println(runtag+"   "+res_list[j]);
+		String printer = "";
+		for (int i = 0; i < docs_found.size(); i++) {
+			int feat_num=1;
+			printer+=relevances.get(i)+" qid: "+qid;
+			if(("default").equals(runtag)){
+				int def_count = i*3;
+				for (int j = 0; j < 3; j++) {
+					printer += " "+feat_num+":" +feat_w.get(def_count+j);
+					feat_num++;
+					printer += " "+feat_num+":" +feat_t.get(def_count+j);
+					feat_num++;
+					printer += " "+feat_num+":" +feat_b.get(def_count+j);
+					feat_num++;
+					printer += " "+feat_num+":" +feat_cn.get(def_count+j);
+					feat_num++;
+				}
+			}else{
+				printer += " "+feat_num+":" +feat_w.get(i);
+				feat_num++;
+				printer += " "+feat_num+":" +feat_t.get(i);
+				feat_num++;
+				printer += " "+feat_num+":" +feat_b.get(i);
+				feat_num++;
+				printer += " "+feat_num+":" +feat_cn.get(i);
+				feat_num++;
+			}
+			printer+=" "+feat_num+":"+doc_lengths[i];
+			printer+=" #docno: "+doc_numbers.get(i)+"\n";	
 		}
-		return res_list;
+
+		return printer;
 	}
 
 	private static String tokenizeStopStem(String input, boolean stemming) throws Exception {
