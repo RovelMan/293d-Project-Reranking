@@ -97,7 +97,7 @@ def write_chunk(start_percent, end_percent, lines, to_file):
 
 
 # Run Lucene
-def lucene():
+def lucene(top_docs):
     path_name = './trec-demo-master'
     sys.stdout.write("-------------------------------\n\n")
     sys.stdout.write("  Starting Lucene()\n\n")
@@ -105,7 +105,7 @@ def lucene():
     sys.stdout.write("  Running lucene\n\n")
     os.system('ant')
     os.system('ant IndexTREC')
-    os.system('java -cp "bin:lib/*" BatchSearch -index index/ -queries test-data/title-queries.301-450 -simfn bm25 > ../RankLib/data/letor.txt')
+    os.system(('java -cp "bin:lib/*" BatchSearch -index index/ -queries test-data/title-queries.301-450 -top {} -simfn bm25').format(top_docs))
     # os.system('java -cp "bin:lib/*" BatchSearch -index index/ -queries test-data/title-queries.301-450 -simfn bm25')
     # os.system('java -cp "bin:lib/*" BatchSearch -index index/ -queries test-data/query_test.txt -simfn bm25 > ../RankLib/data/test_out.txt')
     # os.system('java -cp "bin:lib/*" BatchSearch -index index/ -queries test-data/query_test.txt -simfn bm25')
@@ -191,7 +191,7 @@ def ranklib():
         sys.stdout.write("\nFinished all the test models!\n\n")
     train_models(train_model)
 
-lucene()
+lucene(1000)
 
 
 

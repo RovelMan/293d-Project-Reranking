@@ -2,6 +2,8 @@ import java.io.BufferedReader;
 import java.lang.Math;
 import java.io.File;
 import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.BufferedWriter;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -53,10 +55,11 @@ import org.apache.lucene.search.DoubleValuesSource;
 public class BatchSearch {
 	private BatchSearch() {
 	}
-
+	double[] top10 = {0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0};
+	String[] top10docs = new String[10];
 	/** Simple command-line based search demo. */
 	public static void main(String[] args) throws Exception {
-		String usage = "Usage:\tjava BatchSearch [-index dir] [-simfn similarity] [-field f] [-queries file]";
+		String usage = "Usage:\tjava BatchSearch [-index dir] [-simfn similarity] [-field f] [-top top] [-queries file]";
 		if (args.length > 0 && ("-h".equals(args[0]) || "-help".equals(args[0]))) {
 			System.out.println(usage);
 			System.out.println("Supported similarity functions:\ndefault: DefaultSimilary (tfidf)\n");
@@ -67,6 +70,7 @@ public class BatchSearch {
 		String field = "contents";
 		String queries = null;
 		String simstring = "default";
+		int top = 1000;
 
 		for (int i = 0; i < args.length; i++) {
 			if ("-index".equals(args[i])) {
@@ -80,6 +84,9 @@ public class BatchSearch {
 				i++;
 			} else if ("-simfn".equals(args[i])) {
 				simstring = args[i + 1];
+				i++;
+			}else if ("-top".equals(args[i])) {
+				top = Integer.valueOf(args[i + 1]);
 				i++;
 			}
 		}
@@ -113,7 +120,6 @@ public class BatchSearch {
 		int query_count = 0;
 		Date start_total = new Date();
 		// while still more queries--> search the current query
-		int tot_count = 0;
 		//FOR EACH QUERY
 		while (true) {
 			Date start = new Date();
@@ -130,11 +136,10 @@ public class BatchSearch {
 			String[] pair = line.split(" ", 2);
 			line = pair[1];
 
-			// line = tokenizeStopStem(line, true); // porter stem and delete stopwords in query
-			// //line=line;
-			// if  (line.length() == 0) {
-			// 	line = line;
-			// }
+			line = tokenizeStopStem(line, true); // porter stem and delete stopwords in query
+			if  (line.length() == 0) {
+			 	line = pair[1];
+			}
 
 			//result is title: full title: query  body:full body:query
 			List<Query> query_list = new ArrayList<Query>();
@@ -159,23 +164,31 @@ public class BatchSearch {
 			
 		
 			//print whole shit
-			String q_search = doBatchSearch(in, searcher, pair[0], query_list, simstring);
-			System.out.printf(q_search);
+			String q_search = doBatchSearch(in, searcher, pair[0], query_list, simstring, top);
+			File f = new File("../RankLib/data/letor.txt");
+			FileWriter w = new FileWriter(f);
+			BufferedWriter bw = new BufferedWriter(w);
+			bw.write(q_search);
+			bw.close();
 			Date end = new Date();
 			time = time + (end.getTime() - start.getTime());
+			System.out.println(query_count+"/150 queries done\nTime spent: " + time + " seconds");
 			query_count = query_count + 1;
 		}
 		Date end_total = new Date();
-		System.out.println("\n" +time + " total milliseconds spendt"); // print time spent indexing to user
-		System.out.println(query_count + " total queries"); // print time spent indexing to user
-		System.out.println(time/query_count + " average milliseconds spendt per query"); // print time spent indexing to user
+		String info = "\n" +time + " total milliseconds spendt\n" + 
+			query_count + " total queries\n" +
+			time/query_count + " average milliseconds spendt per query";
+		File f = new File("../RankLib/data/letor.txt");
+		FileWriter w = new FileWriter(f);
+		BufferedWriter bw = new BufferedWriter(w);
+		bw.write(info);
+		bw.close();
 		//System.out.println((end_total.getTime() - start_total.getTime())/query_count + " average milliseconds spendt per query"); // print time spent indexing to user
-
-
 		reader.close();
 	}
 
-	public static String doBatchSearch(BufferedReader in, IndexSearcher searcher, String qid, List<Query> query_list, String runtag)
+	public static String doBatchSearch(BufferedReader in, IndexSearcher searcher, String qid, List<Query> query_list, String runtag,int num_top)
 			throws IOException {
 		String[] simfunctions = {"default","bm25","dfr","lm"};
 		Similarity simfn = null;
@@ -212,7 +225,7 @@ public class BatchSearch {
 			List<ScoreDoc[]> query_hits = new ArrayList<ScoreDoc[]>();
 			List<Long> totalHits = new ArrayList<Long>();
 			List<Long> ends = new ArrayList<Long>();
-			int max_hits = 1000;
+			int max_hits = num_top;
 			for (Query query : query_list) {
 				topdocs.add(searcher.search(query,max_hits));
 			}
@@ -478,7 +491,9 @@ public class BatchSearch {
 					feat_num++;
 				}
 			}
+			
 			sum = Math.log(sum);
+
 			if (sum>3.25) {
 				relevant = 2;
 			}else if(sum>2.75){

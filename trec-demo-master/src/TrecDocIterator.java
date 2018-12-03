@@ -62,7 +62,6 @@ public class TrecDocIterator implements Iterator<Document> {
 
 	protected BufferedReader rdr;
 	protected boolean at_eof = false;
-
 	/*
 		CLASS THAT READS XML DOCUMENTS, AND ITERATES THROUGH <doc> TAGS WITH .next()
 	*/
@@ -75,9 +74,14 @@ public class TrecDocIterator implements Iterator<Document> {
 	public boolean hasNext() {
 		return !at_eof;
 	}
-
+	int counter = 0;
 	@Override // Function that read ONE DOC
 	public Document next() {
+		
+		if((counter%1000)==0){
+			System.out.println("Have processed "+counter+" documents. Smile");
+		}
+		counter++;
 		Document doc = new Document();
 		StringBuffer sb = new StringBuffer();
 		try {
@@ -226,7 +230,7 @@ public class TrecDocIterator implements Iterator<Document> {
 			}
 
 		}
-
+		br.close();
 		return sb.toString();
 	}
 
