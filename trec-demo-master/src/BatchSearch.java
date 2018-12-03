@@ -1,4 +1,5 @@
 import java.io.BufferedReader;
+import java.lang.Math;
 import java.io.File;
 import java.io.FileReader;
 import java.util.List;
@@ -50,9 +51,6 @@ import org.apache.lucene.index.Term;
 import org.apache.lucene.search.DoubleValuesSource;
 /** Simple command-line based search demo. */
 public class BatchSearch {
-	public static List<double[]> document_lengths = new ArrayList<double[]>();
-	public static List<List<Integer>> relevancy_labels = new ArrayList<List<Integer>>();
-	public static List<List<String>> document_numbers = new ArrayList<List<String>>();
 	private BatchSearch() {
 	}
 
@@ -85,20 +83,18 @@ public class BatchSearch {
 				i++;
 			}
 		}
-		File file = new File("./test-data/relevancy_test.txt");
-		Scanner sc = new Scanner(file);
+		// File file = new File("./test-data/relevancy_test.txt");
+		// Scanner sc = new Scanner(file);
 		
-		List<String[]> relevancy = new ArrayList<String[]>();
+		// List<String[]> relevancy = new ArrayList<String[]>();
 		
-		while(sc.hasNextLine()) {
-			relevancy.add(sc.nextLine().split(" "));
-		}
-		sc.close();
+		// while(sc.hasNextLine()) {
+		// 	relevancy.add(sc.nextLine().split(" "));
+		// }
+		// sc.close();
 		// creating the reader to read from our indexing
 		IndexReader reader = DirectoryReader.open(FSDirectory.open(new File(index).toPath()));
-		// creating a searcher to search through the indexes https://www.tutorialspoint.com/lucene/lucene_indexsearcher.htm
 		IndexSearcher searcher = new IndexSearcher(reader);
-		// analyser to tokennize stream
 		Analyzer analyzer = new StandardAnalyzer();
 		// initiate reader of the user quereies
 		BufferedReader in = null;
@@ -132,51 +128,13 @@ public class BatchSearch {
 				break;
 			}
 			String[] pair = line.split(" ", 2);
-			String raw_line = pair[1].toLowerCase();
+			line = pair[1];
 
-			line = tokenizeStopStem(raw_line, true); // porter stem and delete stopwords in query
-			//line=raw_line;
-			if  (line.length() == 0) {
-				line = raw_line;
-			}
-
-
-
-			//////// ALTERNATIVE QUERIES ////////////////////
-			//standard query. Without " " it will nonly assign first word to field, all others to contents/ field writton to Queryparser.
-			//body:dette contents:er contents:en contents:norsk contents:tittel title:dette contents:er contents:en contents:norsk contents:tittel
-			//String special = "body:" + line + " OR title:" +line;
-			//Query query = parser.parse(special);
-
-			//boolea query, only showing if it whole query appears in both
-			//+body:"dette er en norsk tittel" +title:"dette er en norsk tittel"
-			//String special = "body:" + '"' + line +'"' + " AND title:" + '"'+line+'"';
-			//Query query = parser.parse(special);
-
-			//boolean query, showing results if whole query appears in ONE OR MORE of the fields
-			// body:"dette er en norsk tittel" title:"dette er en norsk tittel"
-			//String special = "body:" + '"' + line +'"' + " OR title:" + '"'+line+'"';
-			//Query query = parser.parse(special);
-
-			//boolea query, only showing if query appears in at least title DOES NOT WORK WHEN WE DO NOT STEM CONTENT FIELD
-			//body:"dette er en norsk tittel" +title:"dette er en norsk tittel"
-			//String special = "body:" + '"' + line +'"' + " OR +title:" + '"'+line+'"';
-			//Query query = parser.parse(special);
-
-
-			//////// DEMO QUERIES- play with Occur  /////////////////////
-
-			//Query booleanQuery = parser.parse(line);
-
-			/*
-			//result is  on form +title:"full query" body:"full query"
-			Query query1 = title_parser.parse('"'+line+ '"');
-			Query query2 = body_parser.parse('"'+line+ '"');
-			BooleanQuery booleanQuery = new BooleanQuery.Builder()
-			.add(query1, BooleanClause.Occur.SHOULD)
-			.add(query2, BooleanClause.Occur.SHOULD)
-			.build();
-			*/
+			// line = tokenizeStopStem(line, true); // porter stem and delete stopwords in query
+			// //line=line;
+			// if  (line.length() == 0) {
+			// 	line = line;
+			// }
 
 			//result is title: full title: query  body:full body:query
 			List<Query> query_list = new ArrayList<Query>();
@@ -185,6 +143,7 @@ public class BatchSearch {
 			Query query_body = body_parser.parse(line);
 			Query query_cn = cn_parser.parse(line);
 			query_list.addAll(Arrays.asList(query,query_title,query_body,query_cn));
+			// query_list.addAll(Arrays.asList(query));
 
 			List<BooleanQuery> boolean_list = new ArrayList<BooleanQuery>();
 			BooleanQuery boolean_title = new BooleanQuery.Builder()
@@ -195,14 +154,13 @@ public class BatchSearch {
 			
 			String print_string = "";
 			//1 QUERY, ALL SIM FUNCTIONS{	
-			// System.out.printf(doBatchSearch(in, searcher, pair[0], query_list, simstring,relevancy));
-
 			//know that each sim function will return the same amout of documents.
 			//number of docs will vary for each query, though
 			
 		
 			//print whole shit
-
+			String q_search = doBatchSearch(in, searcher, pair[0], query_list, simstring);
+			System.out.printf(q_search);
 			Date end = new Date();
 			time = time + (end.getTime() - start.getTime());
 			query_count = query_count + 1;
@@ -217,24 +175,8 @@ public class BatchSearch {
 		reader.close();
 	}
 
-	public static String doBatchSearch(BufferedReader in, IndexSearcher searcher, String qid, List<Query> query_list, String runtag, List<String[]> relevancy)
+	public static String doBatchSearch(BufferedReader in, IndexSearcher searcher, String qid, List<Query> query_list, String runtag)
 			throws IOException {
-
-		/*****
-		 *
-		 * MAKE A BOOLEAN QUERY HERE SOMEWHERE
-		 * oboleanClause.Occur.Must means that the clause is compulsory
-		 * BooleanQuery booleanQuery = new BooleanQuery();
-		 * booleanQuery.add(query);
-		 *
-		*****/
-		// Represents hits returned by IndexSearcher.search(Query,int).
-
-		// TopDocs results = searcher.search(query, 1000); // Finds the top 1000 hits for query.
-		// ScoreDoc[] hits = results.scoreDocs;
-		// HashMap<String, String> seen = new HashMap<String, String>(1000);
-		// long numTotalHits = results.totalHits;
-		// long end = Math.min(numTotalHits, 1000);
 		String[] simfunctions = {"default","bm25","dfr","lm"};
 		Similarity simfn = null;
 		List<List<String>> docnumbers = new ArrayList<List<String>>(); //return once
@@ -270,7 +212,7 @@ public class BatchSearch {
 			List<ScoreDoc[]> query_hits = new ArrayList<ScoreDoc[]>();
 			List<Long> totalHits = new ArrayList<Long>();
 			List<Long> ends = new ArrayList<Long>();
-			int max_hits = 100;
+			int max_hits = 1000;
 			for (Query query : query_list) {
 				topdocs.add(searcher.search(query,max_hits));
 			}
@@ -291,12 +233,15 @@ public class BatchSearch {
 			//""" Loop through all hits for all queries """
 			int num_docs = ends.get(0).intValue();
 			List<String> doc_numbers = new ArrayList<String>(); //return once
-			List<Integer> relevances = new ArrayList<Integer>(); //return once
+			// List<Integer> relevances = new ArrayList<Integer>(); //return once
 			List<Double> feat_w = new ArrayList<Double>(); //return
 			List<Double> feat_t = new ArrayList<Double>(); //return
 			List<Double> feat_b = new ArrayList<Double>(); //return
 			List<Double> feat_cn = new ArrayList<Double>(); // return
+			HashMap<String, String> seen = new HashMap<String, String>(max_hits);
 			double[] doc_lengths = new double[num_docs]; //return once
+			int count_false=0;
+			int matched=0;
 			for (int i = start; i < ends.get(0); i++) {
 				// There are duplicate document numbers in the FR collection, so only output a given
 				// docno once.
@@ -308,15 +253,25 @@ public class BatchSearch {
 				Document doc_w = searcher.doc(query_hits.get(0)[i].doc);
 				String docno_w = doc_w.get("docno");
 				doc_numbers.add(docno_w);
-				for (String[] r : relevancy) {
-					if (r[2].equals(docno_w)) {
-						System.out.println("wtf");
-						relevances.add(Integer.valueOf(r[3]));
-						break;
-					}else{
-						relevances.add(0);
-					}
-				}
+				Boolean match = false;
+
+				/*  if we find true relevancy labels for lucene 7.5   */
+				// if(("default".equals(sim))){
+				// 	for (String[] r : relevancy) {
+				// 		if (r[2].equals(docno_w)&&qid.equals(r[0])) {
+				// 			System.out.println("hit");
+				// 			match = true;
+				// 			matched++;
+				// 			relevances.add(Integer.valueOf(r[3]));
+				// 			break;
+				// 		}
+				// 	}
+				// 	if(!match){
+				// 		count_false++;
+				// 		relevances.add(0);
+				// 	}
+				// }
+				
 
 				doc_lengths[i] = doc_w.toString().length();
 				feat_w.add((double)query_hits.get(0)[i].score);
@@ -469,11 +424,14 @@ public class BatchSearch {
 					}
 					
 				}		
+				if (seen.containsKey(docno_w)) {
+					continue;
+				}
+				seen.put(docno_w, docno_w);
 			}
-			
 			if (sim.equals("default")) {
 				docnumbers.add(doc_numbers);
-				labels.add(relevances);
+				// labels.add(relevances);
 				lengths.add(doc_lengths);
 			}
 			whole.add(feat_w);
@@ -481,40 +439,60 @@ public class BatchSearch {
 			body.add(feat_b);
 			country.add(feat_cn);
 		}
-		String printer = "";
+		String result = "";
 		for (int i = 0; i < docnumbers.get(0).size(); i++) {
+			String line = "";
+			double sum = 0.0;
+			int relevant = 0;
 			int feat_num=1;
-			printer+=labels.get(0).get(i)+" qid:"+qid;
+			line+=" qid:"+qid;
 			for (int k = 0; k < simfunctions.length; k++) {
 				if(("default").equals(simfunctions[k])){
 					int def_count = i*3;
 					for (int j = 0; j < 3; j++) {
-						printer += " "+feat_num+":" +whole.get(k).get(def_count+j);
+						sum+=whole.get(k).get(def_count+j);
+						line += " "+feat_num+":" +whole.get(k).get(def_count+j);
 						feat_num++;
-						printer += " "+feat_num+":" +title.get(k).get(def_count+j);
+						sum+=title.get(k).get(def_count+j);
+						line += " "+feat_num+":" +title.get(k).get(def_count+j);
 						feat_num++;
-						printer += " "+feat_num+":" +body.get(k).get(def_count+j);
+						sum+=body.get(k).get(def_count+j);
+						line += " "+feat_num+":" +body.get(k).get(def_count+j);
 						feat_num++;
-						printer += " "+feat_num+":" +country.get(k).get(def_count+j);
+						sum+=country.get(k).get(def_count+j);
+						line += " "+feat_num+":" +country.get(k).get(def_count+j);
 						feat_num++;
 					}
 				}else{
-					printer += " "+feat_num+":" +whole.get(k).get(i);
+					sum+=whole.get(k).get(i);
+					line += " "+feat_num+":" +whole.get(k).get(i);
 					feat_num++;
-					printer += " "+feat_num+":" +title.get(k).get(i);
+					sum+=title.get(k).get(i);
+					line += " "+feat_num+":" +title.get(k).get(i);
 					feat_num++;
-					printer += " "+feat_num+":" +body.get(k).get(i);
+					sum+=body.get(k).get(i);
+					line += " "+feat_num+":" +body.get(k).get(i);
 					feat_num++;
-					printer += " "+feat_num+":" +country.get(k).get(i);
+					sum+=country.get(k).get(i);
+					line += " "+feat_num+":" +country.get(k).get(i);
 					feat_num++;
 				}
-				
 			}
-			printer+=" "+feat_num+":"+lengths.get(0)[i];
-			printer+=" #docno: "+docnumbers.get(0).get(i)+"\n";
+			sum = Math.log(sum);
+			if (sum>3.25) {
+				relevant = 2;
+			}else if(sum>2.75){
+				relevant = 1;
+			}else{
+				relevant = 0;	
+			}
+			line+=" "+feat_num+":"+lengths.get(0)[i];
+			line+=" #docno: "+docnumbers.get(0).get(i);
+			line = String.valueOf(relevant)+line+"\n";
+			result += line;
 		}
 
-		return printer;
+		return result;
 	}
 
 	private static String tokenizeStopStem(String input, boolean stemming) throws Exception {
