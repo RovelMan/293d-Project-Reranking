@@ -87,6 +87,10 @@ import mmap
 
 """
 
+topdocs = 100
+predict = False
+train = True
+
 def write_chunk(start_percent, end_percent, lines, to_file):
     data_size = len(lines)
     chunk = lines[int(data_size*start_percent):int(data_size*end_percent)]
@@ -103,12 +107,13 @@ def lucene(top_docs,train):
     sys.stdout.write("  Starting Lucene()\n\n")
     os.chdir(('{}').format(path_name))
     sys.stdout.write("  Running lucene\n\n")
-    os.system('ant')
-    os.system('ant IndexTREC')
-    os.system(('java -cp "bin:lib/*" BatchSearch -index index/ -queries test-data/title-queries.301-450 -top {} -train {} -simfn bm25').format(top_docs,train))
-    # os.system('java -cp "bin:lib/*" BatchSearch -index index/ -queries test-data/title-queries.301-450 -simfn bm25')
-    # os.system('java -cp "bin:lib/*" BatchSearch -index index/ -queries test-data/query_test.txt -simfn bm25 > ../RankLib/data/test_out.txt')
-    # os.system('java -cp "bin:lib/*" BatchSearch -index index/ -queries test-data/query_test.txt -simfn bm25')
+    # os.system('ant')
+    # os.system('ant IndexTREC')
+    if predict:
+        os.system(('java -cp "bin:lib/*" BatchSearch -index index/ -queries test-data/title-queries.301-450 -top 10 -train {} -simfn bm25').format(train))
+    if train:
+        pass
+        # os.system(('java -cp "bin:lib/*" BatchSearch -index index/ -queries test-data/title-queries.301-450 -top {} -train {} -simfn bm25').format(top_docs,train))
     sys.stdout.write('  Generating data\n\n')
     f = open('../RankLib/data/letor.txt','r')
     lines = f.readlines()
@@ -122,7 +127,7 @@ def lucene(top_docs,train):
 
 
 # Run Ranklib
-def ranklib(train=False, test=False):
+def ranklib(train=False, pred=False):
     sys.stdout.write('\n\n-------------------------------\n\n')
     sys.stdout.write('  Starting RankLib()\n\n')
     path_name = './RankLib'
@@ -138,7 +143,7 @@ def ranklib(train=False, test=False):
     # General
     epoch = 1000
     k_fold = 3
-    gmax = {0,1,2}
+    gmax = 2
     #lambdaMART and MART
     tree_size = 1000
     tc = 256
@@ -193,16 +198,17 @@ def ranklib(train=False, test=False):
                 os.system(("java -Xmx5500m -jar RankLib-2.1-patched.jar -load models/model_{}_{}.txt -ranker {} -test data/test.txt -metric2T {} -tc 10  > {}").format(
                     ranking_models[x], metric_test, x, metric_test, write_results))
             if(pred):
-                os.system(("java -Xmx5500m -jar RankLib-2.1-patched.jar -load models/model_{}_{}.txt -ranker {} -test data/test.txt -metric2T {} -tc 10  > {}").format(
+                os.system(("java -Xmx5500m -jar RankLib-2.1-patched.jar -load models/model_{}_{}.txt -ranker {} -test data/pred.txt -metric2T {} -tc 10  > {}").format(
                 ranking_models[x], metric_test, x, metric_test, write_results))
         sys.stdout.write("\nFinished all the test models!\n\n")
     if(train):
         train_models(train_model)
-    if(test):
-        rank_models(test_model, False)
+        rank_models(train_model,False)
+    if(predict):
+        rank_models(test_model, True)
 
-lucene(1000,True)
-ranklib(train=True,test=False)
+lucene(topdocs,train)
+ranklib(train=train,pred=predict)
 
 
 

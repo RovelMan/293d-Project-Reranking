@@ -199,7 +199,7 @@ public class BatchSearch {
 		String info = "\n" +time + " total milliseconds spendt\n" + 
 			query_count + " total queries\n" +
 			time/query_count + " average milliseconds spendt per query";
-		File f = new File("../RankLib/data/letor.txt");
+		File f = new File("../RankLib/data/time.txt");
 		FileWriter w = new FileWriter(f);
 		BufferedWriter bw = new BufferedWriter(w);
 		bw.write(info);
