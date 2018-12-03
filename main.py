@@ -119,7 +119,6 @@ def lucene():
     sys.stdout.write('  Done with Lucene()\n\n')
     sys.stdout.write('-------------------------------\n\n')
 
-lucene()
 
 # Run Ranklib
 def ranklib():
@@ -130,8 +129,8 @@ def ranklib():
     os.chdir(('cd {}').format(path_name))
     ranking_models = ["MART", "RankNet", "RankBoost", "AdaRank", "Coordinate_Ascent",
                 "", "LambdaMART", "ListNet", "Random_Forests", "L2_Regularization"]
-    train_model = [6, 0]
-    test_model = [6, 0, 8, 3]
+    train_model = [6, 0, 3]
+    test_model = [6, 0, 3]
     metric_train = "NDCG@10"
     metric_test = metric_train
     silent = "-silent"
@@ -190,7 +189,10 @@ def ranklib():
             os.system(("java -Xmx5500m -jar RankLib-2.1-patched.jar -load {}/models/model_{}_{}.txt -ranker {} -test {}/data/test.txt -metric2T {} -tc 10  > {}").format(
                 path_name,ranking_models[x], metric_test, x, path_name, metric_test, write_results))
         sys.stdout.write("\nFinished all the test models!\n\n")
+    train_models(train_model)
 
+lucene()
+ranklib()
 
 
 
