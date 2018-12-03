@@ -173,17 +173,18 @@ public class BatchSearch {
 			File f = null;
 			FileWriter w = null;
 			BufferedWriter bw = null;
+			System.out.println("query: "+pair[0]);
 			if (train) {
 				q_search = doBatchSearch(in, searcher, pair[0], query_list, simstring, top);
 				f = new File("../RankLib/data/letor.txt");
-				w = new FileWriter(f);
+				w = new FileWriter(f,true);
 				bw = new BufferedWriter(w);
 				bw.write(q_search);
 			}
 			if(!train){
 				q_search = doBatchSearch(in, searcher, pair[0], query_list, simstring, top);
 				f = new File("../RankLib/data/letor.txt");
-				w = new FileWriter(f);
+				w = new FileWriter(f,true);
 				bw = new BufferedWriter(w);
 				bw.write(q_search);
 			}
@@ -513,9 +514,9 @@ public class BatchSearch {
 			
 			sum = Math.log(sum);
 
-			if (sum>3.25) {
+			if (sum>3.5) {
 				relevant = 2;
-			}else if(sum>2.75){
+			}else if(sum>3){
 				relevant = 1;
 			}else{
 				relevant = 0;	
