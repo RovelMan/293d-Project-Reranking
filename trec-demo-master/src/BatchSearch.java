@@ -59,7 +59,7 @@ public class BatchSearch {
 	String[] top10docs = new String[10];
 	/** Simple command-line based search demo. */
 	public static void main(String[] args) throws Exception {
-		String usage = "Usage:\tjava BatchSearch [-index dir] [-simfn similarity] [-field f] [-top top] [-queries file]";
+		String usage = "Usage:\tjava BatchSearch [-index dir] [-simfn similarity] [-field f] [-top top] [-train boolean] [-queries file]";
 		if (args.length > 0 && ("-h".equals(args[0]) || "-help".equals(args[0]))) {
 			System.out.println(usage);
 			System.out.println("Supported similarity functions:\ndefault: DefaultSimilary (tfidf)\n");
@@ -71,6 +71,7 @@ public class BatchSearch {
 		String queries = null;
 		String simstring = "default";
 		int top = 1000;
+		Boolean train = true;
 
 		for (int i = 0; i < args.length; i++) {
 			if ("-index".equals(args[i])) {
@@ -87,6 +88,10 @@ public class BatchSearch {
 				i++;
 			}else if ("-top".equals(args[i])) {
 				top = Integer.valueOf(args[i + 1]);
+				i++;
+			}
+			else if ("-train".equals(args[i])) {
+				train = Boolean.valueOf(args[i + 1]);
 				i++;
 			}
 		}
@@ -164,11 +169,25 @@ public class BatchSearch {
 			
 		
 			//print whole shit
-			String q_search = doBatchSearch(in, searcher, pair[0], query_list, simstring, top);
-			File f = new File("../RankLib/data/letor.txt");
-			FileWriter w = new FileWriter(f);
-			BufferedWriter bw = new BufferedWriter(w);
-			bw.write(q_search);
+			String q_search = "";
+			File f = null;
+			FileWriter w = null;
+			BufferedWriter bw = null;
+			if (train) {
+				q_search = doBatchSearch(in, searcher, pair[0], query_list, simstring, top);
+				f = new File("../RankLib/data/letor.txt");
+				w = new FileWriter(f);
+				bw = new BufferedWriter(w);
+				bw.write(q_search);
+			}
+			if(!train){
+				q_search = doBatchSearch(in, searcher, pair[0], query_list, simstring, top);
+				f = new File("../RankLib/data/letor.txt");
+				w = new FileWriter(f);
+				bw = new BufferedWriter(w);
+				bw.write(q_search);
+			}
+			
 			bw.close();
 			Date end = new Date();
 			time = time + (end.getTime() - start.getTime());
