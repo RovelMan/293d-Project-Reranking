@@ -1,3 +1,4 @@
 trec-demo-master/test-data/documents.xml
 trec-demo-master/test-data/trec-disk4-5.xml
 trec-demo-master/test-data/sample.xml
+RankLib/data/*
