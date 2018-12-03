@@ -53,7 +53,7 @@
     <target name="IndexTREC">
         <java classname="IndexTREC" failonerror="true" fork="yes">
             <jvmarg line="-Xmx1g"/>
-            <arg line="-docs &quot;test-data/trec-disk4-5.xml&quot;"/>
+            <arg line="-docs &quot;test-data/sample.xml&quot;"/>
             <classpath refid="PromiseDemo.classpath"/>
         </java>
     </target>
