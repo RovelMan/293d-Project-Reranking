@@ -105,8 +105,8 @@ def lucene():
     sys.stdout.write("  Running lucene\n\n")
     os.system('ant')
     os.system('ant IndexTREC')
-    # os.system('java -cp "bin:lib/*" BatchSearch -index index/ -queries test-data/title-queries.301-450 -simfn bm25 > ../RankLib/data/letor.txt')
-    os.system('java -cp "bin:lib/*" BatchSearch -index index/ -queries test-data/title-queries.301-450 -simfn bm25')
+    os.system('java -cp "bin:lib/*" BatchSearch -index index/ -queries test-data/title-queries.301-450 -simfn bm25 > ../RankLib/data/letor.txt')
+    # os.system('java -cp "bin:lib/*" BatchSearch -index index/ -queries test-data/title-queries.301-450 -simfn bm25')
     # os.system('java -cp "bin:lib/*" BatchSearch -index index/ -queries test-data/query_test.txt -simfn bm25 > ../RankLib/data/test_out.txt')
     # os.system('java -cp "bin:lib/*" BatchSearch -index index/ -queries test-data/query_test.txt -simfn bm25')
     sys.stdout.write('  Generating data\n\n')
@@ -192,7 +192,6 @@ def ranklib():
     train_models(train_model)
 
 lucene()
-ranklib()
 
 
 
