@@ -2,6 +2,8 @@ import os
 import sys
 import datetime
 import mmap
+import random
+import np
 
 """
     ---------------------------------------------------------------
@@ -88,16 +90,29 @@ import mmap
 """
 
 topdocs = 100
-predict = False
-train = True
+predict = True
+model_train = False
+lucene_train = False
 
-def write_chunk(start_percent, end_percent, lines, to_file):
+def write_chunk(lines):
     data_size = len(lines)
-    chunk = lines[int(data_size*start_percent):int(data_size*end_percent)]
-    f = open(to_file,'w')
-    for line in chunk:
-        f.write(line)
-    f.close()
+    random.shuffle(lines)
+    train = lines[int(data_size*0):int(data_size*0.70)]
+    vali = lines[int(data_size*0.70):int(data_size*0.85)]
+    test = lines[int(data_size*0.85):int(data_size*1)]
+
+    train_file = open('../RankLib/data/train.txt','w')
+    vali_file = open('../RankLib/data/vali.txt','w')
+    test_file = open('../RankLib/data/test.txt','w')
+    for line in train:
+        train_file.write(line)
+    for line in vali:
+        vali_file.write(line)
+    for line in test:
+        test_file.write(line)
+    train_file.close()
+    vali_file.close()
+    test_file.close()
 
 
 # Run Lucene
@@ -107,20 +122,17 @@ def lucene(top_docs,train):
     sys.stdout.write("  Starting Lucene()\n\n")
     os.chdir(('{}').format(path_name))
     sys.stdout.write("  Running lucene\n\n")
-    # os.system('ant')
-    # os.system('ant IndexTREC')
     if predict:
-        os.system(('java -cp "bin:lib/*" BatchSearch -index index/ -queries test-data/title-queries.301-450 -top 10 -train {} -simfn bm25').format(train))
+        os.system(('java -cp "bin:lib/*" BatchSearch -index index/ -queries test-data/test-queries.txt -top 10 -train {} -simfn bm25').format(train))
     if train:
-        pass
-        # os.system(('java -cp "bin:lib/*" BatchSearch -index index/ -queries test-data/title-queries.301-450 -top {} -train {} -simfn bm25').format(top_docs,train))
-    sys.stdout.write('  Generating data\n\n')
-    f = open('../RankLib/data/letor.txt','r')
-    lines = f.readlines()
-    f.close()
-    write_chunk(0,0.7,lines,'../RankLib/data/train.txt')
-    write_chunk(0.7,0.85,lines,'../RankLib/data/vali.txt')
-    write_chunk(0.85,1,lines,'../RankLib/data/test.txt')
+        os.system('ant')
+        os.system('ant IndexTREC')
+        os.system(('java -cp "bin:lib/*" BatchSearch -index index/ -queries test-data/title-queries.301-450 -top {} -train {} -simfn bm25').format(top_docs,train))
+        sys.stdout.write('  Generating data\n\n')
+        f = open('../RankLib/data/letor.txt','r')
+        lines = f.readlines()
+        f.close()
+        write_chunk(lines)
     sys.stdout.write('  Done with Lucene()\n\n')
     sys.stdout.write('-------------------------------\n\n')
     os.chdir('..')
@@ -137,16 +149,22 @@ def ranklib(train=False, pred=False):
                 "", "LambdaMART", "ListNet", "Random_Forests", "L2_Regularization"]
     train_model = [6, 0, 3]
     test_model = [6, 0, 3]
+    pred_model = [3]
     metric_train = "NDCG@10"
     metric_test = metric_train
     silent = "-silent"
+
     # General
-    epoch = 1000
+    epoch = 10000
     k_fold = 3
     gmax = 2
     #lambdaMART and MART
     tree_size = 1000
     tc = 256
+    # Adarank uses default param
+
+
+
     # random_forrest
     bag_size = 1000
     r_tree = 1
@@ -160,8 +178,8 @@ def ranklib(train=False, pred=False):
             if x == 0 or x == 6:
                 save_model = (
                     "models/{}_{}_model.txt").format(ranking_models[x], metric_train )
-                os.system(("java -Xmx5500m -jar RankLib-2.1-patched.jar  -train data/train.txt -ranker {} -validate data/vali.txt -metric2t {} -tc {} -round {}  -kcv {} -gmax {} -epoch {} -tree {} -save {} {}").format(
-                    x, metric_train, tc, epoch, k_fold, gmax,epoch, tree_size, save_model, silent))
+                os.system(("java -jar RankLib-2.1-patched.jar  -train data/train.txt -validate data/vali.txt -ranker {} -kcv {} -metric2t {} -tc {} -round {} -kcv 3  -gmax {} -epoch {} -tree {} -save {} {}").format(
+                    x, k_fold,metric_train, tc, epoch, gmax,epoch, tree_size, save_model, silent))
                 
                 """Preprocess to draw heatmap"""
                 # f = open(
@@ -180,8 +198,8 @@ def ranklib(train=False, pred=False):
                 # format: train, ranker, test, validate, metric, metric
                 save_model = (
                     "models/{}_{}_model.txt").format(ranking_models[x], metric_train)
-                os.system(("java -Xmx5500m -jar RankLib-2.1-patched.jar  -train data/train.txt -ranker {} -validate data/vali.txt -metric2t {} -tc {} -round {} -kcv {} -gmax {} -epoch {} -bag {} -tree {} -save {} {}").format(
-                    x, metric_train, tc, epoch, k_fold, gmax, epoch, bag_size, r_tree, save_model, silent))
+                os.system(("java -jar RankLib-2.1-patched.jar  -train data/train.txt -ranker {} -validate data/vali.txt -metric2t {} -tc {} -round {} -gmax {} -epoch {} -bag {} -tree {} -kcv {} -save {} {}").format(
+                    x, metric_train, tc, epoch, gmax, epoch, bag_size, r_tree, k_fold, save_model, silent))
             time = datetime.datetime.now()-start_time
             sys.stdout.write(str(time))
             sys.stdout.write(("\n...Finished {}\n").format(ranking_models[x]))
@@ -195,20 +213,31 @@ def ranklib(train=False, pred=False):
             write_results = (
                 "results/{}_{}_result.txt").format(ranking_models[x], metric_train)
             if(not pred): 
-                os.system(("java -Xmx5500m -jar RankLib-2.1-patched.jar -load models/model_{}_{}.txt -ranker {} -test data/test.txt -metric2T {} -tc 10  > {}").format(
+                os.system(("java -jar RankLib-2.1-patched.jar -load models/{}_{}_model.txt -ranker {} -test data/test.txt -metric2T {} -tc 10  > {}").format(
                     ranking_models[x], metric_test, x, metric_test, write_results))
             if(pred):
-                os.system(("java -Xmx5500m -jar RankLib-2.1-patched.jar -load models/model_{}_{}.txt -ranker {} -test data/pred.txt -metric2T {} -tc 10  > {}").format(
-                ranking_models[x], metric_test, x, metric_test, write_results))
+                os.system(("java -jar RankLib-2.1-patched.jar -load models/{}_{}_model.txt -rank data/predict.txt -score results/rerank_scores/{}_{}_scores.txt").format(
+                ranking_models[x], metric_test,ranking_models[x],metric_test))
+                f = open(('results/rerank_scores/{}_{}_scores.txt').format(ranking_models[x],metric_test))
+                lines = f.readlines()
+                f.close()
+                top_10 = []
+                for line in lines:
+                    rank = float(line.split("\t")[2].strip("\n"))
+                    top_10.append(rank)
+                top_10_sorted = top_10.sort(reverse=True)
+                print(top_10)
+                print(top_10_sorted)
+
         sys.stdout.write("\nFinished all the test models!\n\n")
     if(train):
         train_models(train_model)
         rank_models(train_model,False)
     if(predict):
-        rank_models(test_model, True)
+        rank_models(pred_model, True)
 
-lucene(topdocs,train)
-ranklib(train=train,pred=predict)
+lucene(topdocs,lucene_train)
+ranklib(train=model_train,pred=predict)
 
 
 
