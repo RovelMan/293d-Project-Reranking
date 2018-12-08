@@ -46,7 +46,7 @@ public class BatchSearch {
     /** Simple command-line based search demo. */
     static double percent_of = 0.0;
     static double goal = 150.0*4.0;
-    static StringBuilder progress = new StringBuilder("....................................................................................................0%");
+    static StringBuilder progress = new StringBuilder("....................................................................................................");
 	public static void main(String[] args) throws Exception {
         
 		String usage = "Usage:\tjava BatchSearch [-index dir] [-simfn similarity] [-field f] [-top top] [-train boolean] [-queries file]";
@@ -60,7 +60,7 @@ public class BatchSearch {
 		String field = "contents";
 		String queries = null;
 		String simstring = "default";
-        int top = 150;
+        int top = 100;
 		Boolean train = true;
 
 		for (int i = 0; i < args.length; i++) {
@@ -118,6 +118,23 @@ public class BatchSearch {
 		int query_count = 1;
         Date start_total = new Date();
         System.out.println(progress);
+        File f = null;
+        FileWriter w = null;
+        BufferedWriter bw = null;
+        File f_t = new File("../RankLib/data/time.txt");
+        FileWriter w_t = new FileWriter(f_t);
+        BufferedWriter bw_t = new BufferedWriter(w_t);
+        if (train) {
+            f = new File("../RankLib/data/letor.txt");
+            w = new FileWriter(f);
+            bw = new BufferedWriter(w);
+        }
+        //predict
+        if(!train){
+            f = new File("../RankLib/data/predict.txt");
+            w = new FileWriter(f);
+            bw = new BufferedWriter(w);
+        }
 		while (true) {
             Date start = new Date();
 			String line = in.readLine();
@@ -169,46 +186,26 @@ public class BatchSearch {
 			query_list.addAll(Arrays.asList(query,query_title,query_body,query_cn,query_bigram,query_maxgram));
 
 			String q_search = "";
-			File f = null;
-			FileWriter w = null;
-			BufferedWriter bw = null;
 			System.out.println("query: "+pair[0]);
-			if (train) {
-				q_search = doBatchSearch(in, searcher, pair[0], query_list, simstring, top, relevancy);
-				f = new File("../RankLib/data/letor.txt");
-				w = new FileWriter(f,true);
-				bw = new BufferedWriter(w);
-				bw.write(q_search);
-            }
-            //predict
-			if(!train){
-				q_search = doBatchSearch(in, searcher, pair[0], query_list, simstring, 10, relevancy);
-				f = new File("../RankLib/data/predict.txt");
-				w = new FileWriter(f);
-				bw = new BufferedWriter(w);
-				bw.write(q_search);
-			}
-			
-			bw.close();
+            q_search = doBatchSearch(in, searcher, pair[0], query_list, analyzer, simstring, top, relevancy);
+            bw.write(q_search);
 			Date end = new Date();
             time = time + (end.getTime() - start.getTime());
-            f = new File("../RankLib/data/time.txt");
-            w = new FileWriter(f);
-            bw = new BufferedWriter(w);
             String q_time = query_count+"/150 queries done\nTime spent: " + time/1000 + " seconds";
-            bw.write(q_time);
-            bw.close();
+            bw_t.write(q_time);
 			query_count = query_count + 1;
-		}
+        }
+        bw.close();
+        bw_t.close();
 		Date end_total = new Date();
 		String info = "\n" +time + " total milliseconds spendt\n" + 
 			query_count + " total queries\n" +
 			time/query_count + " average milliseconds spendt per query";
-		File f = new File("../RankLib/data/time.txt");
-		FileWriter w = new FileWriter(f,true);
-		BufferedWriter bw = new BufferedWriter(w);
-		bw.write(info);
-		bw.close();
+		File f_tt = new File("../RankLib/data/time.txt");
+		FileWriter w_tt = new FileWriter(f_tt);
+		BufferedWriter bw_tt = new BufferedWriter(w_tt);
+		bw_tt.write(info);
+		bw_tt.close();
 		//System.out.println((end_total.getTime() - start_total.getTime())/query_count + " average milliseconds spendt per query"); // print time spent indexing to user
 		reader.close();
 	}
@@ -216,8 +213,8 @@ public class BatchSearch {
 	/**
 	 * This function performs a top-1000 search for the query as a basic TREC run.
 	 */
-	public static String doBatchSearch(BufferedReader in, IndexSearcher searcher, String qid, List<Query> query_list, String runtag, int num_top, List<String[]> relevancy)	 
-			throws IOException {
+	public static String doBatchSearch(BufferedReader in, IndexSearcher searcher, String qid, List<Query> query_list, Analyzer analyzer, String runtag, int num_top, List<String[]> relevancy)	 
+			throws Exception {
         String[] simfunctions = {"default","bm25","dfr","lm"};
 		Similarity simfn = null;
 		List<List<String>> docnumbers = new ArrayList<List<String>>(); //return once
@@ -229,7 +226,8 @@ public class BatchSearch {
         List<double[]> lengths = new ArrayList<double[]>(); //return once
         List<List<Double>> bigrams_whole = new ArrayList<List<Double>>(); //return
         List<List<Double>> maxgrams_whole = new ArrayList<List<Double>>(); //return
-
+        List<Double> cosim  = new ArrayList<Double>();//return once
+        
         for (String sim : simfunctions) {
             String print_string = "";
 			if ("default".equals(sim)) {
@@ -287,12 +285,15 @@ public class BatchSearch {
             int matched=0;
             //for every document match for the query
             for (int i = start; i < ends.get(0); i++) {
+               
+                //whole to field variables
                 Boolean t_exist = false;
                 Boolean b_exist = false;
                 Boolean cn_exist = false;
                 Boolean bi_w_exist = false;
                 Boolean max_w_exist = false;
                 Boolean match = false;
+
                 String explanation = "";
                 Document doc_w = searcher.doc(query_hits.get(0)[i].doc);
                 String docno_w = doc_w.get("docno");
@@ -305,25 +306,50 @@ public class BatchSearch {
                 feat_w.add((double)query_hits.get(0)[i].score);
                 if (("default").equals(sim)) {
                     explanation = searcher.explain(query_list.get(0), i).toString();
+                    double num_terms = query_list.get(0).toString().split("contents:").length-1;
+                    // System.out.println(explanation);
                     String[] array = explanation.split("\n");
+                    double cosimilarity = 0.0;
+                    double dot_sum = 0.0;
+                    double query_sum = 0.0;
+                    double doc_sum = 0.0;
                     double tfs = 0.0;
+                    double termfreq = 0.0;
                     double idfs = 0.0;
+                    double norm_fact = 0.0;
                     int counter = 1;
                     // System.out.println(explanation);
                     for (int j = 1; j < array.length; j=j+8){
                         if(array.length>1){
                             double tf_score = Double.parseDouble(array[j+2].trim().split(" ")[0]);
-                            String tfreq = array[j+3].trim().replaceAll("=termFreq="," ").split(" ")[0];
+                            double tfreq = Double.parseDouble(array[j+3].trim().replaceAll("=termFreq="," ").split(" ")[0]);
                             double idfreq = Double.parseDouble(array[j+4].trim().split(" ")[0]);
-                            tfs=tfs+tf_score;
-                            idfs=idfs+idfreq;
+                            norm_fact = Double.parseDouble(array[j+7].trim().split(" ")[0]);                    
+                            double norm_tf = tfreq*norm_fact;
+                            idfs+=Math.pow(idfreq,2);
+                            tfs+=norm_tf;
+                            //cosine variables
+                            double query_tf = 1/num_terms;
+                            double doc_tfidf = norm_tf*idfreq;
+                            double query_tfidf = query_tf*idfreq;
+
+                            dot_sum += doc_tfidf*query_tfidf;
+                            query_sum += Math.pow(query_tfidf,2);
+                            doc_sum += Math.pow(doc_tfidf,2);
+                            
+                            
                             counter++;
                         }
                     }
-                    tfs = tfs/counter;
-                    idfs = idfs/counter;
+                    query_sum = Math.sqrt(query_sum);
+                    doc_sum = Math.sqrt(doc_sum);
+                    idfs = Math.sqrt(idfs)*norm_fact;
+                    if(doc_sum!=0){
+                        cosimilarity = dot_sum/(doc_sum*query_sum);
+                    }                    
                     feat_w.add(tfs);
                     feat_w.add(idfs);
+                    cosim.add(cosimilarity);
                 }
 
 
@@ -336,6 +362,7 @@ public class BatchSearch {
                         t_exist = true;
                         feat_t.add((double)query_hits.get(1)[j].score);
                         if (("default").equals(sim)) {
+                            double norm_fact = 0.0;
                             explanation = searcher.explain(query_list.get(1), j).toString();
                             String[] array = explanation.split("\n");
                             double tfs = 0.0;
@@ -345,15 +372,15 @@ public class BatchSearch {
                             for (int k = 1; k < array.length; k=k+8){
                                 if(array.length>1){
                                     double tf_score = Double.parseDouble(array[k+2].trim().split(" ")[0]);
-                                    String tfreq = array[k+3].trim().replaceAll("=termFreq="," ").split(" ")[0];
+                                    double tfreq = Double.parseDouble(array[k+3].trim().replaceAll("=termFreq="," ").split(" ")[0]);
                                     double idfreq = Double.parseDouble(array[k+4].trim().split(" ")[0]);
-                                    tfs=tfs+tf_score;
-                                    idfs=idfs+idfreq;
-                                    counter++;
+                                    norm_fact = Double.parseDouble(array[k+7].trim().split(" ")[0]);                    
+                                    double norm_tf = tfreq*norm_fact;
+                                    idfs+=Math.pow(idfreq,2);
+                                    tfs+=norm_tf;
                                 }
                             }
-                            tfs = tfs/counter;
-                            idfs = idfs/counter;
+                            idfs = Math.sqrt(idfs)*norm_fact;
                             feat_t.add(tfs);
                             feat_t.add(idfs);
                             break;
@@ -369,6 +396,7 @@ public class BatchSearch {
                         b_exist = true;
                         feat_b.add((double)query_hits.get(2)[j].score);
                         if (("default").equals(sim)) {
+                            double norm_fact = 0.0;
                             explanation = searcher.explain(query_list.get(2), j).toString();
                             String[] array = explanation.split("\n");
                             double tfs = 0.0;
@@ -378,15 +406,15 @@ public class BatchSearch {
                             for (int k = 1; k < array.length; k=k+8){
                                 if(array.length>1){
                                     double tf_score = Double.parseDouble(array[k+2].trim().split(" ")[0]);
-                                    String tfreq = array[k+3].trim().replaceAll("=termFreq="," ").split(" ")[0];
+                                    double tfreq = Double.parseDouble(array[k+3].trim().replaceAll("=termFreq="," ").split(" ")[0]);
                                     double idfreq = Double.parseDouble(array[k+4].trim().split(" ")[0]);
-                                    tfs=tfs+tf_score;
-                                    idfs=idfs+idfreq;
-                                    counter++;
+                                    norm_fact = Double.parseDouble(array[k+7].trim().split(" ")[0]);                    
+                                    double norm_tf = tfreq*norm_fact;
+                                    idfs+=Math.pow(idfreq,2);
+                                    tfs+=norm_tf;
                                 }
                             }
-                            tfs = tfs/counter;
-                            idfs = idfs/counter;
+                            idfs = Math.sqrt(idfs)*norm_fact;
                             feat_b.add(tfs);
                             feat_b.add(idfs);
                             break;
@@ -402,6 +430,7 @@ public class BatchSearch {
                         cn_exist = true;
                         feat_cn.add((double)query_hits.get(3)[j].score);
                         if (("default").equals(sim)) {
+                            double norm_fact = 0.0;
                             explanation = searcher.explain(query_list.get(3), j).toString();
                             String[] array = explanation.split("\n");
                             double tfs = 0.0;
@@ -411,15 +440,15 @@ public class BatchSearch {
                             for (int k = 1; k < array.length; k=k+8){
                                 if(array.length>1){
                                     double tf_score = Double.parseDouble(array[k+2].trim().split(" ")[0]);
-                                    String tfreq = array[k+3].trim().replaceAll("=termFreq="," ").split(" ")[0];
+                                    double tfreq = Double.parseDouble(array[k+3].trim().replaceAll("=termFreq="," ").split(" ")[0]);
                                     double idfreq = Double.parseDouble(array[k+4].trim().split(" ")[0]);
-                                    tfs=tfs+tf_score;
-                                    idfs=idfs+idfreq;
-                                    counter++;
+                                    norm_fact = Double.parseDouble(array[k+7].trim().split(" ")[0]);                    
+                                    double norm_tf = tfreq*norm_fact;
+                                    idfs+=Math.pow(idfreq,2);
+                                    tfs+=norm_tf;
                                 }
                             }
-                            tfs = tfs/counter;
-                            idfs = idfs/counter;
+                            idfs = Math.sqrt(idfs)*norm_fact;
                             feat_cn.add(tfs);
                             feat_cn.add(idfs);
                             break;
@@ -608,8 +637,7 @@ public class BatchSearch {
             
             if(int_percent>(int)prev_percent){
                 progress.replace(int_percent-1,int_percent,"#");
-                progress.replace(prog_len-2,prog_len-1,String.valueOf(int_percent));
-                System.out.println(progress.toString());
+                System.out.println(progress.toString()+int_percent+"%");
             }
         }
         String result = "";
@@ -667,6 +695,8 @@ public class BatchSearch {
 			if (sum>5) {
                 labels.set(i,1);
             }
+            line+=" "+feat_num+":"+cosim.get(i);
+            feat_num++;
 			line+=" "+feat_num+":"+lengths.get(0)[i];
 			line+=" #docno: "+docnumbers.get(0).get(i);
 			line = String.valueOf(labels.get(i))+line+"\n";
