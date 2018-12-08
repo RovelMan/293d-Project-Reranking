@@ -109,6 +109,10 @@ public class BatchSearch {
 		QueryParser title_parser = new QueryParser("title", analyzer);
 		QueryParser body_parser = new QueryParser("body", analyzer);
         QueryParser cn_parser = new QueryParser("cn",analyzer);
+
+        // EXTRA
+        QueryParser bigram_parser = new QueryParser("contents", analyzer);
+        QueryParser maxgram_parser = new QueryParser("contents", analyzer);
         
         double time = 0.0;
 		int query_count = 1;
@@ -132,6 +136,24 @@ public class BatchSearch {
 			if  (line.length() == 0) {
 			 	line = pair[1];
             }
+
+            // EXTRA
+            System.out.println("Line: " + line);
+            String bigram_line = "";
+            String[] grams = line.split(" ");
+            if (grams.length > 2) {
+                for (int i = 0; i < grams.length-1; i++) {
+                    bigram_line += "\"" + grams[i] + " " + grams[i+1] + "\" ";
+                }
+                bigram_line += "\"" + grams[grams.length-1] + " " + grams[0] + "\" ";
+            } else if (grams.length == 2) {
+                bigram_line += "\"" + grams[0] + " " + grams[1] + "\" ";
+            } else {
+                bigram_line += grams[0];
+            }
+            System.out.println("Changed line: " + bigram_line);
+            String maxgram_line = "\"" + line + "\"";
+            System.out.println("Changed line: " + maxgram_line);
             
             //unigram field queries
 			List<Query> query_list = new ArrayList<Query>();
@@ -139,7 +161,12 @@ public class BatchSearch {
 			Query query_title = title_parser.parse(line);
 			Query query_body = body_parser.parse(line);
 			Query query_cn = cn_parser.parse(line);
-			query_list.addAll(Arrays.asList(query,query_title,query_body,query_cn));
+
+            // EXTRA
+            Query query_bigram = bigram_parser.parse(bigram_line);
+            Query query_maxgram = maxgram_parser.parse(maxgram_line);            
+
+			query_list.addAll(Arrays.asList(query,query_title,query_body,query_cn,query_bigram,query_maxgram));
 
 			String q_search = "";
 			File f = null;
@@ -200,7 +227,9 @@ public class BatchSearch {
 		List<List<Double>> body = new ArrayList<List<Double>>(); //return
 		List<List<Double>> country = new ArrayList<List<Double>>(); // return
         List<double[]> lengths = new ArrayList<double[]>(); //return once
-        
+        List<List<Double>> bigrams_whole = new ArrayList<List<Double>>(); //return
+        List<List<Double>> maxgrams_whole = new ArrayList<List<Double>>(); //return
+
         for (String sim : simfunctions) {
             String print_string = "";
 			if ("default".equals(sim)) {
@@ -249,6 +278,8 @@ public class BatchSearch {
             List<Double> feat_t = new ArrayList<Double>(); //return
             List<Double> feat_b = new ArrayList<Double>(); //return
             List<Double> feat_cn = new ArrayList<Double>(); // return
+            List<Double> feat_bi_w = new ArrayList<Double>(); // return
+            List<Double> feat_max_w = new ArrayList<Double>(); // return
             //for duplicates
             HashMap<String, String> seen = new HashMap<String, String>(1000);
             int start = 0;
@@ -259,30 +290,15 @@ public class BatchSearch {
                 Boolean t_exist = false;
                 Boolean b_exist = false;
                 Boolean cn_exist = false;
+                Boolean bi_w_exist = false;
+                Boolean max_w_exist = false;
                 Boolean match = false;
                 String explanation = "";
                 Document doc_w = searcher.doc(query_hits.get(0)[i].doc);
                 String docno_w = doc_w.get("docno");
                 doc_lengths[i] = doc_w.toString().length();
                 doc_numbers.add(docno_w);
-                //add relevancy label
-                if("default".equals(sim)){
-                    for (String[] r : relevancy) {
-                        if (r[2].equals(docno_w)&&qid.equals(r[0])) {
-                            match = true;
-                            matched++;
-                            labels.add(Integer.valueOf(r[3]));
-                            break;
-                        }
-                    }
-                    if(!match){
-                        count_false++;
-                        int x = (int)(Math.random()*((1-0)+1))+0;
-                        labels.add(0);
-                    }
-                }
                 
-
                 //find features for the whole document i.e "contents"
                 //explanation contains most features
                 int inc = 0;
@@ -411,7 +427,104 @@ public class BatchSearch {
                     }
                 }
 
+                //bigram
+                //System.out.println(ends.get(4));
+                for (int j = 0; j < ends.get(4); j++) {
+                    Document doc_bi_w = searcher.doc(query_hits.get(4)[j].doc);
+                    String docno_bi_w = doc_bi_w.get("docno");
+                    if(docno_bi_w.equals(docno_w)){
+                        System.out.println("bigram");
 
+                        bi_w_exist = true;
+                        feat_bi_w.add((double)query_hits.get(4)[j].score);
+                        if (("default").equals(sim)) {
+                            explanation = searcher.explain(query_list.get(4), j).toString();
+                            System.out.println(explanation);
+                            String[] array = explanation.split("\n");
+                            double tfs = 0.0;
+                            double idfs = 0.0;
+                            int counter = 1;
+                            for (int k = 1; k < array.length; k=k+8){
+                                if(array.length>1){
+                                    double tf_score = Double.parseDouble(array[k+2].trim().split(" ")[0]);
+                                    String tfreq = array[k+3].trim().replaceAll("=termFreq="," ").split(" ")[0];
+                                    double idfreq = Double.parseDouble(array[k+4].trim().split(" ")[0]);
+                                    tfs=tfs+tf_score;
+                                    idfs=idfs+idfreq;
+                                    counter++;
+                                }
+                            }
+                            tfs = tfs/counter;
+                            idfs = idfs/counter;
+                            feat_bi_w.add(tfs);
+                            feat_bi_w.add(idfs);
+                            break;
+
+                        }
+                    }
+                }
+
+                //maxgram
+                for (int j = 0; j < ends.get(5); j++) {
+                    Document doc_max_w = searcher.doc(query_hits.get(5)[j].doc);
+                    String docno_max_w = doc_max_w.get("docno");
+                    //System.out.println("max"+query_list.get(5).toString());
+                    if(docno_max_w.equals(docno_w)){
+                        max_w_exist = true;
+                        feat_max_w.add((double)query_hits.get(5)[j].score);
+                        if (("default").equals(sim)) {
+                            explanation = searcher.explain(query_list.get(5), j).toString();
+                            String[] array = explanation.split("\n");
+                            double tfs = 0.0;
+                            double idfs = 0.0;
+                            int counter = 1;
+                            //System.out.println(explanation);
+                            for (int k = 1; k < array.length; k=k+8){
+                                if(array.length>1){
+                                    double tf_score = Double.parseDouble(array[k+2].trim().split(" ")[0]);
+                                    String tfreq = array[k+3].trim().replaceAll("=termFreq="," ").split(" ")[0];
+                                    double idfreq = Double.parseDouble(array[k+4].trim().split(" ")[0]);
+                                    tfs=tfs+tf_score;
+                                    idfs=idfs+idfreq;
+                                    counter++;
+                                }
+                            }
+                            tfs = tfs/counter;
+                            idfs = idfs/counter;
+                            feat_max_w.add(tfs);
+                            feat_max_w.add(idfs);
+                            break;
+
+                        }
+                    }
+                }
+
+
+                //add relevancy label
+                if("default".equals(sim)){
+                    for (String[] r : relevancy) {
+                        if (r[2].equals(docno_w)&&qid.equals(r[0])) {
+                            match = true;
+                            matched++;
+                            int value = Integer.valueOf(r[3]);
+                            if (bi_w_exist) {
+                                value = value*1;
+                                labels.add(value);
+                            } else if (max_w_exist) {
+                                value = value*2;
+                                labels.add(value);
+                            } else {
+                                labels.add(Integer.valueOf(r[3]));
+                            }
+                            break;
+                        }
+                    }
+                    if(!match){
+                        count_false++;
+                        int x = (int)(Math.random()*((1-0)+1))+0;
+                        labels.add(x);
+                    }
+                }
 
 
                 //if the documents doesnt match for both whole and field
@@ -445,6 +558,26 @@ public class BatchSearch {
                     }
                     
                 }	
+                if(!bi_w_exist){
+                    if(("default").equals(sim)){
+                        feat_bi_w.add(0.0);
+                        feat_bi_w.add(0.0);
+                        feat_bi_w.add(0.0);
+                    }else{
+                        feat_bi_w.add(0.0);
+                    }
+                    
+                }
+                if(!max_w_exist){
+                    if(("default").equals(sim)){
+                        feat_max_w.add(0.0);
+                        feat_max_w.add(0.0);
+                        feat_max_w.add(0.0);
+                    }else{
+                        feat_max_w.add(0.0);
+                    }
+                    
+                }   
                 // There are duplicate document numbers in the FR collection, so only output a given
                 // docno once.
                 if (seen.containsKey(docno_w)) {
@@ -464,6 +597,8 @@ public class BatchSearch {
 			title.add(feat_t);
 			body.add(feat_b);
             country.add(feat_cn);
+            bigrams_whole.add(feat_bi_w);
+            maxgrams_whole.add(feat_max_w);
             double prev_percent = (percent_of/goal)*100;
             percent_of+=1;
             double percent = (percent_of/goal)*100;          
@@ -500,6 +635,12 @@ public class BatchSearch {
 						sum+=country.get(k).get(def_count+j);
 						line += " "+feat_num+":" +country.get(k).get(def_count+j);
 						feat_num++;
+                        sum+=bigrams_whole.get(k).get(def_count+j);
+                        line += " "+feat_num+":" +bigrams_whole.get(k).get(def_count+j);
+                        feat_num++;
+                        sum+=maxgrams_whole.get(k).get(def_count+j);
+                        line += " "+feat_num+":" +maxgrams_whole.get(k).get(def_count+j);
+                        feat_num++;
 					}
 				}else{
 					sum+=whole.get(k).get(i);
@@ -514,6 +655,12 @@ public class BatchSearch {
 					sum+=country.get(k).get(i);
 					line += " "+feat_num+":" +country.get(k).get(i);
 					feat_num++;
+                    sum+=bigrams_whole.get(k).get(i);
+                    line += " "+feat_num+":" +bigrams_whole.get(k).get(i);
+                    feat_num++;
+                    sum+=maxgrams_whole.get(k).get(i);
+                    line += " "+feat_num+":" +maxgrams_whole.get(k).get(i);
+                    feat_num++;
 				}
 			}
 			sum = Math.log(sum);
