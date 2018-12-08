@@ -328,13 +328,9 @@ public class BatchSearch {
                     query_sum = Math.sqrt(query_sum);
                     doc_sum = Math.sqrt(doc_sum);
                     idfs = Math.sqrt(idfs)*norm_fact;
-                    System.out.println("dot_sum: "+dot_sum);
-                    System.out.println("query_sum: "+query_sum);
-                    System.out.println("doc_sum: "+doc_sum);
                     if(doc_sum!=0){
                         cosimilarity = dot_sum/(doc_sum*query_sum);
                     }                    
-                    System.out.println("cosim: "+cosimilarity+" doc: "+docno_w+"\n");
                     feat_w.add(tfs);
                     feat_w.add(idfs);
                     cosim.add(cosimilarity);
