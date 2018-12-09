@@ -1,6 +1,9 @@
 
 [+] General Parameters:
-Model file:	models/model_MART_NDCG@10.txt
+Model file:	models/MART_NDCG@10_model.txt
 Feature normalization: No
 Test metric:	NDCG@10
-Error in RankerFactory.load(): java.io.FileNotFoundException: models/model_MART_NDCG@10.txt (No such file or directory)
+Model:		MART
+Reading feature file [data/test.txt]... [Done.]            
+(0 ranked lists, 0 entries read)
+NDCG@10 on test data: NaN

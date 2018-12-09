@@ -155,7 +155,6 @@ public class BatchSearch {
             }
 
             // EXTRA
-            System.out.println("Line: " + line);
             String bigram_line = "";
             String[] grams = line.split(" ");
             if (grams.length > 2) {
@@ -168,9 +167,7 @@ public class BatchSearch {
             } else {
                 bigram_line += grams[0];
             }
-            System.out.println("Changed line: " + bigram_line);
             String maxgram_line = "\"" + line + "\"";
-            System.out.println("Changed line: " + maxgram_line);
             
             //unigram field queries
 			List<Query> query_list = new ArrayList<Query>();
@@ -215,6 +212,7 @@ public class BatchSearch {
 	 */
 	public static String doBatchSearch(BufferedReader in, IndexSearcher searcher, String qid, List<Query> query_list, Analyzer analyzer, String runtag, int num_top, List<String[]> relevancy)	 
 			throws Exception {
+        int[] probabilities = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1};
         String[] simfunctions = {"default","bm25","dfr","lm"};
 		Similarity simfn = null;
 		List<List<String>> docnumbers = new ArrayList<List<String>>(); //return once
@@ -224,8 +222,8 @@ public class BatchSearch {
 		List<List<Double>> body = new ArrayList<List<Double>>(); //return
 		List<List<Double>> country = new ArrayList<List<Double>>(); // return
         List<double[]> lengths = new ArrayList<double[]>(); //return once
-        List<List<Double>> bigrams_whole = new ArrayList<List<Double>>(); //return
-        List<List<Double>> maxgrams_whole = new ArrayList<List<Double>>(); //return
+        List<Double> bigram = new ArrayList<Double>(); //return
+        List<Double> maxgram = new ArrayList<Double>(); //return
         List<Double> cosim  = new ArrayList<Double>();//return once
         
         for (String sim : simfunctions) {
@@ -276,8 +274,6 @@ public class BatchSearch {
             List<Double> feat_t = new ArrayList<Double>(); //return
             List<Double> feat_b = new ArrayList<Double>(); //return
             List<Double> feat_cn = new ArrayList<Double>(); // return
-            List<Double> feat_bi_w = new ArrayList<Double>(); // return
-            List<Double> feat_max_w = new ArrayList<Double>(); // return
             //for duplicates
             HashMap<String, String> seen = new HashMap<String, String>(1000);
             int start = 0;
@@ -319,28 +315,53 @@ public class BatchSearch {
                     double norm_fact = 0.0;
                     int counter = 1;
                     // System.out.println(explanation);
-                    for (int j = 1; j < array.length; j=j+8){
-                        if(array.length>1){
-                            double tf_score = Double.parseDouble(array[j+2].trim().split(" ")[0]);
-                            double tfreq = Double.parseDouble(array[j+3].trim().replaceAll("=termFreq="," ").split(" ")[0]);
-                            double idfreq = Double.parseDouble(array[j+4].trim().split(" ")[0]);
-                            norm_fact = Double.parseDouble(array[j+7].trim().split(" ")[0]);                    
-                            double norm_tf = tfreq*norm_fact;
-                            idfs+=Math.pow(idfreq,2);
-                            tfs+=norm_tf;
-                            //cosine variables
-                            double query_tf = 1/num_terms;
-                            double doc_tfidf = norm_tf*idfreq;
-                            double query_tfidf = query_tf*idfreq;
-
-                            dot_sum += doc_tfidf*query_tfidf;
-                            query_sum += Math.pow(query_tfidf,2);
-                            doc_sum += Math.pow(doc_tfidf,2);
-                            
-                            
-                            counter++;
+                    if(array.length>1){
+                        if(!array[0].trim().split(" = ")[1].equals("sum of")){
+                            for (int j = 0; j < array.length-1; j=j+8){
+                                if(array.length>1){
+                                    double tf_score = Double.parseDouble(array[j+2].trim().split(" ")[0]);
+                                    double tfreq = Double.parseDouble(array[j+3].trim().replaceAll("=termFreq="," ").split(" ")[0]);
+                                    double idfreq = Double.parseDouble(array[j+4].trim().split(" ")[0]);
+                                    norm_fact = Double.parseDouble(array[j+7].trim().split(" ")[0]);                    
+                                    double norm_tf = tfreq*norm_fact;
+                                    idfs+=Math.pow(idfreq,2);
+                                    tfs+=norm_tf;
+                                    //cosine variables
+                                    double query_tf = 1/num_terms;
+                                    double doc_tfidf = norm_tf*idfreq;
+                                    double query_tfidf = query_tf*idfreq;
+        
+                                    dot_sum += doc_tfidf*query_tfidf;
+                                    query_sum += Math.pow(query_tfidf,2);
+                                    doc_sum += Math.pow(doc_tfidf,2);
+                                    
+                                    counter++;
+                                }
+                            }
+                        }else{
+                            for (int j = 1; j < array.length-1; j=j+8){
+                                double tf_score = Double.parseDouble(array[j+2].trim().split(" ")[0]);
+                                double tfreq = Double.parseDouble(array[j+3].trim().replaceAll("=termFreq="," ").split(" ")[0]);
+                                double idfreq = Double.parseDouble(array[j+4].trim().split(" ")[0]);
+                                norm_fact = Double.parseDouble(array[j+7].trim().split(" ")[0]);                    
+                                double norm_tf = tfreq*norm_fact;
+                                idfs+=Math.pow(idfreq,2);
+                                tfs+=norm_tf;
+                                //cosine variables
+                                double query_tf = 1/num_terms;
+                                double doc_tfidf = norm_tf*idfreq;
+                                double query_tfidf = query_tf*idfreq;
+    
+                                dot_sum += doc_tfidf*query_tfidf;
+                                query_sum += Math.pow(query_tfidf,2);
+                                doc_sum += Math.pow(doc_tfidf,2);
+                                
+                                counter++;
+                            }
                         }
                     }
+                   
+                    
                     query_sum = Math.sqrt(query_sum);
                     doc_sum = Math.sqrt(doc_sum);
                     idfs = Math.sqrt(idfs)*norm_fact;
@@ -369,15 +390,27 @@ public class BatchSearch {
                             double idfs = 0.0;
                             int counter = 1;
                             // System.out.println(explanation);
-                            for (int k = 1; k < array.length; k=k+8){
-                                if(array.length>1){
-                                    double tf_score = Double.parseDouble(array[k+2].trim().split(" ")[0]);
-                                    double tfreq = Double.parseDouble(array[k+3].trim().replaceAll("=termFreq="," ").split(" ")[0]);
-                                    double idfreq = Double.parseDouble(array[k+4].trim().split(" ")[0]);
-                                    norm_fact = Double.parseDouble(array[k+7].trim().split(" ")[0]);                    
-                                    double norm_tf = tfreq*norm_fact;
-                                    idfs+=Math.pow(idfreq,2);
-                                    tfs+=norm_tf;
+                            if(array.length>1){
+                                if(!array[0].trim().split(" = ")[1].equals("sum of")){
+                                    for (int k = 0; k < array.length-1; k=k+8){
+                                        double tf_score = Double.parseDouble(array[k+2].trim().split(" ")[0]);
+                                        double tfreq = Double.parseDouble(array[k+3].trim().replaceAll("=termFreq="," ").split(" ")[0]);
+                                        double idfreq = Double.parseDouble(array[k+4].trim().split(" ")[0]);
+                                        norm_fact = Double.parseDouble(array[k+7].trim().split(" ")[0]);                    
+                                        double norm_tf = tfreq*norm_fact;
+                                        idfs+=Math.pow(idfreq,2);
+                                        tfs+=norm_tf;
+                                    }
+                                }else{
+                                    for (int k = 1; k < array.length; k=k+8){
+                                        double tf_score = Double.parseDouble(array[k+2].trim().split(" ")[0]);
+                                        double tfreq = Double.parseDouble(array[k+3].trim().replaceAll("=termFreq="," ").split(" ")[0]);
+                                        double idfreq = Double.parseDouble(array[k+4].trim().split(" ")[0]);
+                                        norm_fact = Double.parseDouble(array[k+7].trim().split(" ")[0]);                    
+                                        double norm_tf = tfreq*norm_fact;
+                                        idfs+=Math.pow(idfreq,2);
+                                        tfs+=norm_tf;
+                                    }
                                 }
                             }
                             idfs = Math.sqrt(idfs)*norm_fact;
@@ -403,17 +436,31 @@ public class BatchSearch {
                             double idfs = 0.0;
                             int counter = 1;
                             // System.out.println(explanation);
-                            for (int k = 1; k < array.length; k=k+8){
-                                if(array.length>1){
-                                    double tf_score = Double.parseDouble(array[k+2].trim().split(" ")[0]);
-                                    double tfreq = Double.parseDouble(array[k+3].trim().replaceAll("=termFreq="," ").split(" ")[0]);
-                                    double idfreq = Double.parseDouble(array[k+4].trim().split(" ")[0]);
-                                    norm_fact = Double.parseDouble(array[k+7].trim().split(" ")[0]);                    
-                                    double norm_tf = tfreq*norm_fact;
-                                    idfs+=Math.pow(idfreq,2);
-                                    tfs+=norm_tf;
+                            if(array.length>1){
+                                if(!array[0].trim().split(" = ")[1].equals("sum of")){
+                                    for (int k = 0; k < array.length-1; k=k+8){
+                                        double tf_score = Double.parseDouble(array[k+2].trim().split(" ")[0]);
+                                        double tfreq = Double.parseDouble(array[k+3].trim().replaceAll("=termFreq="," ").split(" ")[0]);
+                                        double idfreq = Double.parseDouble(array[k+4].trim().split(" ")[0]);
+                                        norm_fact = Double.parseDouble(array[k+7].trim().split(" ")[0]);                    
+                                        double norm_tf = tfreq*norm_fact;
+                                        idfs+=Math.pow(idfreq,2);
+                                        tfs+=norm_tf;
+                                    }
+                                }else{
+                                    for (int k = 1; k < array.length; k=k+8){
+                                        double tf_score = Double.parseDouble(array[k+2].trim().split(" ")[0]);
+                                        double tfreq = Double.parseDouble(array[k+3].trim().replaceAll("=termFreq="," ").split(" ")[0]);
+                                        double idfreq = Double.parseDouble(array[k+4].trim().split(" ")[0]);
+                                        norm_fact = Double.parseDouble(array[k+7].trim().split(" ")[0]);                    
+                                        double norm_tf = tfreq*norm_fact;
+                                        idfs+=Math.pow(idfreq,2);
+                                        tfs+=norm_tf;
+                                    }
                                 }
                             }
+                            
+                            
                             idfs = Math.sqrt(idfs)*norm_fact;
                             feat_b.add(tfs);
                             feat_b.add(idfs);
@@ -437,15 +484,27 @@ public class BatchSearch {
                             double idfs = 0.0;
                             int counter = 1;
                             // System.out.println(explanation);
-                            for (int k = 1; k < array.length; k=k+8){
-                                if(array.length>1){
-                                    double tf_score = Double.parseDouble(array[k+2].trim().split(" ")[0]);
-                                    double tfreq = Double.parseDouble(array[k+3].trim().replaceAll("=termFreq="," ").split(" ")[0]);
-                                    double idfreq = Double.parseDouble(array[k+4].trim().split(" ")[0]);
-                                    norm_fact = Double.parseDouble(array[k+7].trim().split(" ")[0]);                    
-                                    double norm_tf = tfreq*norm_fact;
-                                    idfs+=Math.pow(idfreq,2);
-                                    tfs+=norm_tf;
+                            if(array.length>1){
+                                if(!array[0].trim().split(" = ")[1].equals("sum of")){
+                                    for (int k = 0; k < array.length-1; k=k+8){
+                                        double tf_score = Double.parseDouble(array[k+2].trim().split(" ")[0]);
+                                        double tfreq = Double.parseDouble(array[k+3].trim().replaceAll("=termFreq="," ").split(" ")[0]);
+                                        double idfreq = Double.parseDouble(array[k+4].trim().split(" ")[0]);
+                                        norm_fact = Double.parseDouble(array[k+7].trim().split(" ")[0]);                    
+                                        double norm_tf = tfreq*norm_fact;
+                                        idfs+=Math.pow(idfreq,2);
+                                        tfs+=norm_tf;
+                                    }
+                                }else{
+                                    for (int k = 1; k < array.length; k=k+8){
+                                        double tf_score = Double.parseDouble(array[k+2].trim().split(" ")[0]);
+                                        double tfreq = Double.parseDouble(array[k+3].trim().replaceAll("=termFreq="," ").split(" ")[0]);
+                                        double idfreq = Double.parseDouble(array[k+4].trim().split(" ")[0]);
+                                        norm_fact = Double.parseDouble(array[k+7].trim().split(" ")[0]);                    
+                                        double norm_tf = tfreq*norm_fact;
+                                        idfs+=Math.pow(idfreq,2);
+                                        tfs+=norm_tf;
+                                    }
                                 }
                             }
                             idfs = Math.sqrt(idfs)*norm_fact;
@@ -462,34 +521,9 @@ public class BatchSearch {
                     Document doc_bi_w = searcher.doc(query_hits.get(4)[j].doc);
                     String docno_bi_w = doc_bi_w.get("docno");
                     if(docno_bi_w.equals(docno_w)){
-                        System.out.println("bigram");
-
                         bi_w_exist = true;
-                        feat_bi_w.add((double)query_hits.get(4)[j].score);
-                        if (("default").equals(sim)) {
-                            explanation = searcher.explain(query_list.get(4), j).toString();
-                            System.out.println(explanation);
-                            String[] array = explanation.split("\n");
-                            double tfs = 0.0;
-                            double idfs = 0.0;
-                            int counter = 1;
-                            for (int k = 1; k < array.length; k=k+8){
-                                if(array.length>1){
-                                    double tf_score = Double.parseDouble(array[k+2].trim().split(" ")[0]);
-                                    String tfreq = array[k+3].trim().replaceAll("=termFreq="," ").split(" ")[0];
-                                    double idfreq = Double.parseDouble(array[k+4].trim().split(" ")[0]);
-                                    tfs=tfs+tf_score;
-                                    idfs=idfs+idfreq;
-                                    counter++;
-                                }
-                            }
-                            tfs = tfs/counter;
-                            idfs = idfs/counter;
-                            feat_bi_w.add(tfs);
-                            feat_bi_w.add(idfs);
-                            break;
-
-                        }
+                        bigram.add((double)query_hits.get(4)[j].score);
+                        break;
                     }
                 }
 
@@ -500,31 +534,8 @@ public class BatchSearch {
                     //System.out.println("max"+query_list.get(5).toString());
                     if(docno_max_w.equals(docno_w)){
                         max_w_exist = true;
-                        feat_max_w.add((double)query_hits.get(5)[j].score);
-                        if (("default").equals(sim)) {
-                            explanation = searcher.explain(query_list.get(5), j).toString();
-                            String[] array = explanation.split("\n");
-                            double tfs = 0.0;
-                            double idfs = 0.0;
-                            int counter = 1;
-                            //System.out.println(explanation);
-                            for (int k = 1; k < array.length; k=k+8){
-                                if(array.length>1){
-                                    double tf_score = Double.parseDouble(array[k+2].trim().split(" ")[0]);
-                                    String tfreq = array[k+3].trim().replaceAll("=termFreq="," ").split(" ")[0];
-                                    double idfreq = Double.parseDouble(array[k+4].trim().split(" ")[0]);
-                                    tfs=tfs+tf_score;
-                                    idfs=idfs+idfreq;
-                                    counter++;
-                                }
-                            }
-                            tfs = tfs/counter;
-                            idfs = idfs/counter;
-                            feat_max_w.add(tfs);
-                            feat_max_w.add(idfs);
-                            break;
-
-                        }
+                        maxgram.add((double)query_hits.get(5)[j].score);
+                        break;
                     }
                 }
 
@@ -536,22 +547,22 @@ public class BatchSearch {
                             match = true;
                             matched++;
                             int value = Integer.valueOf(r[3]);
-                            if (bi_w_exist) {
-                                value = value*1;
-                                labels.add(value);
-                            } else if (max_w_exist) {
+                            if (max_w_exist) {
                                 value = value*2;
                                 labels.add(value);
+                            } else if (bi_w_exist) {
+                                value = value*1;
+                                labels.add(value);
                             } else {
-                                labels.add(Integer.valueOf(r[3]));
+                                labels.add(value);
                             }
                             break;
                         }
                     }
                     if(!match){
                         count_false++;
-                        int x = (int)(Math.random()*((1-0)+1))+0;
-                        labels.add(x);
+                        int x = (int)(Math.random()*(100-0)+0);
+                        labels.add(probabilities[x]);
                     }
                 }
 
@@ -588,24 +599,10 @@ public class BatchSearch {
                     
                 }	
                 if(!bi_w_exist){
-                    if(("default").equals(sim)){
-                        feat_bi_w.add(0.0);
-                        feat_bi_w.add(0.0);
-                        feat_bi_w.add(0.0);
-                    }else{
-                        feat_bi_w.add(0.0);
-                    }
-                    
+                    bigram.add(0.0);
                 }
                 if(!max_w_exist){
-                    if(("default").equals(sim)){
-                        feat_max_w.add(0.0);
-                        feat_max_w.add(0.0);
-                        feat_max_w.add(0.0);
-                    }else{
-                        feat_max_w.add(0.0);
-                    }
-                    
+                    maxgram.add(0.0);
                 }   
                 // There are duplicate document numbers in the FR collection, so only output a given
                 // docno once.
@@ -626,8 +623,6 @@ public class BatchSearch {
 			title.add(feat_t);
 			body.add(feat_b);
             country.add(feat_cn);
-            bigrams_whole.add(feat_bi_w);
-            maxgrams_whole.add(feat_max_w);
             double prev_percent = (percent_of/goal)*100;
             percent_of+=1;
             double percent = (percent_of/goal)*100;          
@@ -648,6 +643,7 @@ public class BatchSearch {
 			int feat_num=1;
 			line+=" qid:"+qid;
 			for (int k = 0; k < simfunctions.length; k++) {
+                int gram_i = i*4;
 				if(("default").equals(simfunctions[k])){
 					int def_count = i*3;
 					for (int j = 0; j < 3; j++) {
@@ -663,12 +659,6 @@ public class BatchSearch {
 						sum+=country.get(k).get(def_count+j);
 						line += " "+feat_num+":" +country.get(k).get(def_count+j);
 						feat_num++;
-                        sum+=bigrams_whole.get(k).get(def_count+j);
-                        line += " "+feat_num+":" +bigrams_whole.get(k).get(def_count+j);
-                        feat_num++;
-                        sum+=maxgrams_whole.get(k).get(def_count+j);
-                        line += " "+feat_num+":" +maxgrams_whole.get(k).get(def_count+j);
-                        feat_num++;
 					}
 				}else{
 					sum+=whole.get(k).get(i);
@@ -683,13 +673,13 @@ public class BatchSearch {
 					sum+=country.get(k).get(i);
 					line += " "+feat_num+":" +country.get(k).get(i);
 					feat_num++;
-                    sum+=bigrams_whole.get(k).get(i);
-                    line += " "+feat_num+":" +bigrams_whole.get(k).get(i);
-                    feat_num++;
-                    sum+=maxgrams_whole.get(k).get(i);
-                    line += " "+feat_num+":" +maxgrams_whole.get(k).get(i);
-                    feat_num++;
-				}
+                }
+                sum+=bigram.get(gram_i+k);
+                line += " "+feat_num+":"+bigram.get(gram_i+k);
+                feat_num++;
+                sum+=maxgram.get(gram_i+k);
+                line += " "+feat_num+":"+maxgram.get(gram_i+k);
+                feat_num++;
 			}
 			sum = Math.log(sum);
 			if (sum>5) {

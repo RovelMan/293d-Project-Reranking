@@ -3,7 +3,6 @@ import sys
 import datetime
 import mmap
 import random
-import np
 
 """
     ---------------------------------------------------------------
@@ -89,9 +88,9 @@ import np
 
 """
 
-topdocs = 100
-predict = True
-model_train = False
+topdocs = 250
+predict = False
+model_train = True
 lucene_train = False
 
 def write_chunk(lines):
@@ -126,7 +125,7 @@ def lucene(top_docs,train):
         os.system(('java -cp "bin:lib/*" BatchSearch -index index/ -queries test-data/test-queries.txt -top 10 -train {} -simfn bm25').format(train))
     if train:
         os.system('ant')
-        os.system('ant IndexTREC')
+        # os.system('ant IndexTREC')
         os.system(('java -cp "bin:lib/*" BatchSearch -index index/ -queries test-data/title-queries.301-450 -top {} -train {} -simfn bm25').format(top_docs,train))
         sys.stdout.write('  Generating data\n\n')
         f = open('../RankLib/data/letor.txt','r')
