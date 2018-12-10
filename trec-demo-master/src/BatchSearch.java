@@ -121,17 +121,17 @@ public class BatchSearch {
         File f = null;
         FileWriter w = null;
         BufferedWriter bw = null;
-        File f_t = new File("../RankLib/data/time.txt");
+        File f_t = new File("../RankLib/data/time2.txt");
         FileWriter w_t = new FileWriter(f_t);
         BufferedWriter bw_t = new BufferedWriter(w_t);
         if (train) {
-            f = new File("../RankLib/data/letor.txt");
+            f = new File("../RankLib/data/letor2.txt");
             w = new FileWriter(f);
             bw = new BufferedWriter(w);
         }
         //predict
         if(!train){
-            f = new File("../RankLib/data/predict.txt");
+            f = new File("../RankLib/data/predict2.txt");
             w = new FileWriter(f);
             bw = new BufferedWriter(w);
         }
@@ -198,8 +198,8 @@ public class BatchSearch {
 		String info = "\n" +time + " total milliseconds spendt\n" + 
 			query_count + " total queries\n" +
 			time/query_count + " average milliseconds spendt per query";
-		File f_tt = new File("../RankLib/data/time.txt");
-		FileWriter w_tt = new FileWriter(f_tt);
+		File f_tt = new File("../RankLib/data/time2.txt");
+		FileWriter w_tt = new FileWriter(f_tt, true);
 		BufferedWriter bw_tt = new BufferedWriter(w_tt);
 		bw_tt.write(info);
 		bw_tt.close();
@@ -301,7 +301,7 @@ public class BatchSearch {
                 int inc = 0;
                 feat_w.add((double)query_hits.get(0)[i].score);
                 if (("default").equals(sim)) {
-                    explanation = searcher.explain(query_list.get(0), i).toString();
+                    explanation = searcher.explain(query_list.get(0), query_hits.get(0)[i].doc).toString();
                     double num_terms = query_list.get(0).toString().split("contents:").length-1;
                     // System.out.println(explanation);
                     String[] array = explanation.split("\n");
@@ -384,7 +384,7 @@ public class BatchSearch {
                         feat_t.add((double)query_hits.get(1)[j].score);
                         if (("default").equals(sim)) {
                             double norm_fact = 0.0;
-                            explanation = searcher.explain(query_list.get(1), j).toString();
+                            explanation = searcher.explain(query_list.get(1), query_hits.get(1)[j].doc).toString();
                             String[] array = explanation.split("\n");
                             double tfs = 0.0;
                             double idfs = 0.0;
@@ -430,7 +430,7 @@ public class BatchSearch {
                         feat_b.add((double)query_hits.get(2)[j].score);
                         if (("default").equals(sim)) {
                             double norm_fact = 0.0;
-                            explanation = searcher.explain(query_list.get(2), j).toString();
+                            explanation = searcher.explain(query_list.get(2), query_hits.get(2)[j].doc).toString();
                             String[] array = explanation.split("\n");
                             double tfs = 0.0;
                             double idfs = 0.0;
@@ -478,7 +478,7 @@ public class BatchSearch {
                         feat_cn.add((double)query_hits.get(3)[j].score);
                         if (("default").equals(sim)) {
                             double norm_fact = 0.0;
-                            explanation = searcher.explain(query_list.get(3), j).toString();
+                            explanation = searcher.explain(query_list.get(3), query_hits.get(3)[j].doc).toString();
                             String[] array = explanation.split("\n");
                             double tfs = 0.0;
                             double idfs = 0.0;
@@ -548,12 +548,10 @@ public class BatchSearch {
                             matched++;
                             int value = Integer.valueOf(r[3]);
                             if (max_w_exist) {
-                                value = value*2;
-                                labels.add(value);
-                            } else if (bi_w_exist) {
-                                value = value*1;
+                                value = value*3;
                                 labels.add(value);
                             } else {
+                                value = value*2;
                                 labels.add(value);
                             }
                             break;
@@ -561,8 +559,7 @@ public class BatchSearch {
                     }
                     if(!match){
                         count_false++;
-                        int x = (int)(Math.random()*(100-0)+0);
-                        labels.add(probabilities[x]);
+                        labels.add(1);
                     }
                 }
 
@@ -680,10 +677,17 @@ public class BatchSearch {
                 sum+=maxgram.get(gram_i+k);
                 line += " "+feat_num+":"+maxgram.get(gram_i+k);
                 feat_num++;
-			}
-			sum = Math.log(sum);
-			if (sum>5) {
-                labels.set(i,1);
+            }
+            sum = Math.log(sum);        
+			if (labels.get(i)==1) {
+                System.out.println(sum);
+                if(sum>4.4){
+                    System.out.println("change 1");
+                    labels.set(i,1);
+                }else{
+                    labels.set(i,0);
+                }
+                    
             }
             line+=" "+feat_num+":"+cosim.get(i);
             feat_num++;

@@ -90,8 +90,8 @@ import random
 
 topdocs = 250
 predict = False
-model_train = True
-lucene_train = False
+model_train = False
+lucene_train = True
 
 def write_chunk(lines):
     data_size = len(lines)
@@ -156,7 +156,7 @@ def ranklib(train=False, pred=False):
     # General
     epoch = 10000
     k_fold = 3
-    gmax = 2
+    gmax = 3
     #lambdaMART and MART
     tree_size = 1000
     tc = 256
@@ -234,6 +234,8 @@ def ranklib(train=False, pred=False):
         rank_models(train_model,False)
     if(predict):
         rank_models(pred_model, True)
+
+
 
 lucene(topdocs,lucene_train)
 ranklib(train=model_train,pred=predict)

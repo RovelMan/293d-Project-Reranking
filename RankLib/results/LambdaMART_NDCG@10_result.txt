@@ -1,0 +1,9 @@
+
+[+] General Parameters:
+Model file:	models/LambdaMART_NDCG@10_model.txt
+Feature normalization: No
+Test metric:	NDCG@10
+Model:		LambdaMART
+Reading feature file [data/test.txt]: 0... Reading feature file [data/test.txt]... [Done.]            
+(5408 ranked lists, 5448 entries read)
+NDCG@10 on test data: 0.292
