@@ -42,7 +42,8 @@ import org.apache.lucene.analysis.CharArraySet;
 public class BatchSearch {
 
 	private BatchSearch() {}
-
+    private static double count_unknown = 0.0;
+    private static double count_changed = 0.0;
     /** Simple command-line based search demo. */
     static double percent_of = 0.0;
     static double goal = 150.0*4.0;
@@ -212,7 +213,6 @@ public class BatchSearch {
 	 */
 	public static String doBatchSearch(BufferedReader in, IndexSearcher searcher, String qid, List<Query> query_list, Analyzer analyzer, String runtag, int num_top, List<String[]> relevancy)	 
 			throws Exception {
-        int[] probabilities = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1};
         String[] simfunctions = {"default","bm25","dfr","lm"};
 		Similarity simfn = null;
 		List<List<String>> docnumbers = new ArrayList<List<String>>(); //return once
@@ -225,7 +225,6 @@ public class BatchSearch {
         List<Double> bigram = new ArrayList<Double>(); //return
         List<Double> maxgram = new ArrayList<Double>(); //return
         List<Double> cosim  = new ArrayList<Double>();//return once
-        
         for (String sim : simfunctions) {
             String print_string = "";
 			if ("default".equals(sim)) {
@@ -548,7 +547,7 @@ public class BatchSearch {
                             matched++;
                             int value = Integer.valueOf(r[3]);
                             if (max_w_exist) {
-                                value = value*3;
+                                value = value*2;
                                 labels.add(value);
                             } else {
                                 value = value*2;
@@ -611,6 +610,7 @@ public class BatchSearch {
             }
             
             if (sim.equals("default")) {
+                count_unknown+=count_false;
                 System.out.println("Matched: "+matched+" Nonmatch: "+count_false+"\n");
 				docnumbers.add(doc_numbers);
 				// labels.add(relevances);
@@ -633,6 +633,7 @@ public class BatchSearch {
             }
         }
         String result = "";
+        int change_sum = 0;
 		for (int i = 0; i < docnumbers.get(0).size(); i++) {
 			String line = "";
 			double sum = 0.0;
@@ -680,9 +681,8 @@ public class BatchSearch {
             }
             sum = Math.log(sum);        
 			if (labels.get(i)==1) {
-                System.out.println(sum);
-                if(sum>4.4){
-                    System.out.println("change 1");
+                if(sum>16.1){
+                    count_changed++;
                     labels.set(i,1);
                 }else{
                     labels.set(i,0);
@@ -696,6 +696,7 @@ public class BatchSearch {
 			line = String.valueOf(labels.get(i))+line+"\n";
             result += line;
         }
+        System.out.println("threshold ratio: "+count_changed/count_unknown);
         // System.out.println(result);
         return result;
     }
