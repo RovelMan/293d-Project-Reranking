@@ -1,0 +1,9 @@
+
+[+] General Parameters:
+Model file:	models/f3.RankNet_NDCG@10_model.txt
+Feature normalization: No
+Test metric:	NDCG@10
+Model:		RankNet
+Reading feature file [data/test.txt]: 0... Reading feature file [data/test.txt]... [Done.]            
+(22 ranked lists, 5448 entries read)
+NDCG@10 on test data: 0.2967

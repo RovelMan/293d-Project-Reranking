@@ -133,7 +133,7 @@ def lucene(top_docs,train):
         f.close()
         data_size = len(lines)
         # write_chunk(lines)
-        random.shuffle(lines)
+        # random.shuffle(lines)
         train = lines[int(data_size*0):int(data_size*0.85)]
         test = lines[int(data_size*0.85):int(data_size*1)]
         f_train = open('../RankLib/data/train.txt','w')
@@ -164,17 +164,17 @@ def ranklib(train=False, pred=False):
     silent = "-silent"
 
     # General
-    epoch = 100
     k_fold = 3
     gmax = 4
     #lambdaMART and MART
     tree_size = 1000
     tc = 256
-    # Adarank uses default param
-    rounds = 1000
+    # Adarank
+    rounds = 300
     #ranknet
-    layers = 2
-    nodes = 100
+    epoch = 20
+    layers = 3
+    nodes = 20
 
     # random_forrest
     bag_size = 1000
