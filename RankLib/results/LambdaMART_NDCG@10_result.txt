@@ -1,6 +1,0 @@
-
-[+] General Parameters:
-Model file:	models/f3.LambdaMART_NDCG@10_model.txt
-Feature normalization: No
-Test metric:	NDCG@10
-Error in RankerFactory.load(): java.lang.NullPointerException

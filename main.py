@@ -49,20 +49,25 @@ import random
 """
 
 topdocs = 250
-model_train = True
-feat_extract = False
+model_train = False
+feat_extract = True
 predict = False
+
+
+def str_to_bool(s):
+    if s == 'True':
+         return True
+    elif s == 'False':
+         return False
 
 arguments = sys.argv[1:]
 for i in range(0,len(arguments)-1,2):
     if arguments[i] == "--feat_extract":
-        print(bool(arguments[i+1]))
-        feat_extract = bool(arguments[i+1])
+        feat_extract = str_to_bool(arguments[i+1])
     if arguments[i] == "--train_models":
-        model_train = bool(arguments[i+1])
+        model_train = str_to_bool(arguments[i+1])
     if arguments[i] == "--predict":
-        predict = bool(arguments[i+1])
-
+        predict = str_to_bool(arguments[i+1])
 
 def write_chunk(lines):
     data_size = len(lines)
@@ -84,7 +89,6 @@ def write_chunk(lines):
     vali_file.close()
     test_file.close()
 
-
 # Run Lucene
 def lucene(top_docs,train):
     path_name = './trec-demo-master'
@@ -96,7 +100,7 @@ def lucene(top_docs,train):
         os.system(('java -cp "bin:lib/*" BatchSearch -index index/ -queries test-data/prediction-queries.txt -top 10 -train {} -simfn bm25').format(train))
     if train:
         os.system('ant')
-        os.system('ant IndexTREC')
+        # os.system('ant IndexTREC')
         os.system(('java -cp "bin:lib/*" BatchSearch -index index/ -queries test-data/title-queries.301-450 -top {} -train {} -simfn bm25').format(top_docs,train))
         sys.stdout.write('  Generating data\n\n')
 
