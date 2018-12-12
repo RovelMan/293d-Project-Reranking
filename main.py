@@ -21,46 +21,6 @@ import random
         Find all features
 
         Return top n documents
-    ---------------------------------------------------------------
-
-    LETOR - Learning To Rank
-
-        <line> .=. <target> qid:<qid> <feature>:<value> <feature>:<value> ... <feature>:<value> # <info>
-        
-        Generate the correct file format to be used in ranklib
-        Features:
-            1 TF
-                whole
-                text
-                headline
-                cn
-            2 IDF
-            whole
-                text
-                headline
-                cn
-            3 TFIDF
-            whole
-                text
-                headline
-                cn
-            4 BM25
-            whole
-                text
-                headline
-                cn
-            5  LM
-            whole
-                text
-                headline
-                cn
-            6 DMR
-            whole
-                text
-                headline
-                cn
-            5 DL - document length
-
 
     ----------------------------------------------------------------
     RankLib
@@ -89,9 +49,20 @@ import random
 """
 
 topdocs = 250
-predict = False
 model_train = True
-lucene_train = True
+feat_extract = False
+predict = False
+
+arguments = sys.argv[1:]
+for i in range(0,len(arguments)-1,2):
+    if arguments[i] == "--feat_extract":
+        print(bool(arguments[i+1]))
+        feat_extract = bool(arguments[i+1])
+    if arguments[i] == "--train_models":
+        model_train = bool(arguments[i+1])
+    if arguments[i] == "--predict":
+        predict = bool(arguments[i+1])
+
 
 def write_chunk(lines):
     data_size = len(lines)
@@ -122,26 +93,28 @@ def lucene(top_docs,train):
     os.chdir(('{}').format(path_name))
     sys.stdout.write("  Running lucene\n\n")
     if predict:
-        os.system(('java -cp "bin:lib/*" BatchSearch -index index/ -queries test-data/test-queries.txt -top 10 -train {} -simfn bm25').format(train))
+        os.system(('java -cp "bin:lib/*" BatchSearch -index index/ -queries test-data/prediction-queries.txt -top 10 -train {} -simfn bm25').format(train))
     if train:
-        # os.system('ant')
-        # os.system('ant IndexTREC')
-        # os.system(('java -cp "bin:lib/*" BatchSearch -index index/ -queries test-data/title-queries.301-450 -top {} -train {} -simfn bm25').format(top_docs,train))
+        os.system('ant')
+        os.system('ant IndexTREC')
+        os.system(('java -cp "bin:lib/*" BatchSearch -index index/ -queries test-data/title-queries.301-450 -top {} -train {} -simfn bm25').format(top_docs,train))
         sys.stdout.write('  Generating data\n\n')
-        f = open('../RankLib/data/letor.txt','r')
-        lines = f.readlines()
-        f.close()
-        data_size = len(lines)
-        # write_chunk(lines)
+
+        # IF YOU DONT WANT TO USE K-FOLD CROSS VALIDATION, UNCOMMENT THIS AND IT WILL SPLIT THE LETOR FILE
+        # f = open('../RankLib/data/letor.txt','r')
+        # lines = f.readlines()
+        # f.close()
+        # data_size = len(lines)
+        # # write_chunk(lines)
         # random.shuffle(lines)
-        train = lines[int(data_size*0):int(data_size*0.85)]
-        test = lines[int(data_size*0.85):int(data_size*1)]
-        f_train = open('../RankLib/data/train.txt','w')
-        f_test = open('../RankLib/data/train.txt','w')
-        for line in train:
-            f_train.write(line)
-        for line in test:
-            f_test.write(line)
+        # train = lines[int(data_size*0):int(data_size*0.85)]
+        # test = lines[int(data_size*0.85):int(data_size*1)]
+        # f_train = open('../RankLib/data/train.txt','w')
+        # f_test = open('../RankLib/data/train.txt','w')
+        # for line in train:
+        #     f_train.write(line)
+        # for line in test:
+        #     f_test.write(line)
     sys.stdout.write('  Done with Lucene()\n\n')
     sys.stdout.write('-------------------------------\n\n')
     os.chdir('..')
@@ -156,9 +129,9 @@ def ranklib(train=False, pred=False):
     os.chdir(('{}').format(path_name))
     ranking_models = ["MART", "RankNet", "RankBoost", "AdaRank", "Coordinate_Ascent",
                 "", "LambdaMART", "ListNet", "Random_Forests", "L2_Regularization"]
-    train_model = [6, 0, 3, 1]
-    test_model = [6, 0, 3]
-    pred_model = [3,1]
+    train_model = [6, 0, 3]
+    test_model = [6, 0, 3, 1]
+    pred_model = [6,0,3]
     metric_train = "NDCG@10"
     metric_test = metric_train
     silent = "-silent"
@@ -172,12 +145,11 @@ def ranklib(train=False, pred=False):
     # Adarank
     rounds = 300
     #ranknet
-    epoch = 20
+    epoch = 100
     layers = 3
     nodes = 20
 
     # random_forrest
-    bag_size = 1000
     r_tree = 1
 
     #Train the models in the models list
@@ -191,35 +163,37 @@ def ranklib(train=False, pred=False):
                 save_model = (
                     "models/{}_{}_model.txt").format(ranking_models[x], metric_train )
                 save_name = ("{}_{}_model.txt").format(ranking_models[x], metric_train)
-                os.system(("java -jar RankLib-2.1-patched.jar  -train data/train.txt -ranker {} -kcv {} -metric2t {} -tc {} -round {}  -gmax {} -epoch {} -tree {} -kcvmd models/ -kcvmn {} {}").format(
+                os.system(("java -jar RankLib-2.1-patched.jar  -train data/letor.txt -ranker {} -kcv {} -metric2t {} -tc {} -round {}  -gmax {} -epoch {} -tree {} -kcvmd models/ -kcvmn {} {}").format(
                     x, k_fold,metric_train, tc, epoch, gmax,epoch, tree_size, save_name, silent))
                 
                 """Preprocess to draw heatmap"""
-                # f = open(
-                #     ("./MQ2008/models/model_{}_{}_f{}.xml").format(ranking_models[x], metric_train, ), "r+")
-                # lines = f.readlines()
-                # f.seek(0)
-                # for i in lines:
-                #     if "#" not in i:
-                #         f.write(i)
-                # f.truncate()
-                # f.close()
-                # sys.stdout.write("\nDraw heatmap..\n")
-                # os.system(("python ./draw_tree.py ./MQ2008/models/model_{}_{}_f{}.xml | dot -Tpng > ./MQ2008/models/model_heatmap_{}_{}_f{}.png").format(
-                #     ranking_models[x], metric_train,, ranking_models[x], metric_train,))
+                f = open(
+                    ("models/f3.{}_{}_model.txt").format(ranking_models[x], metric_train, ), "r+")
+                lines = f.readlines()
+                f_xml = open(("models/{}_{}_model.xml").format(ranking_models[x],metric_test),"w")
+                f.seek(0)
+                for i in lines:
+                    if "#" not in i:
+                        f_xml.write(i)
+                f.truncate()
+                f.close()
+                f_xml.close()
+                sys.stdout.write("\nDraw heatmap..\n")
+                os.system(("python ./draw_tree.py models/{}_{}_model.xml | dot -Tpng > models/model_heatmap_{}_{}.png").format(
+                    ranking_models[x], metric_train, ranking_models[x], metric_train,))
             elif x == 1:
                 save_model = (
                     "models/{}_{}_model.txt").format(ranking_models[x], metric_train)
                 save_name = ("{}_{}_model.txt").format(ranking_models[x], metric_train)
-                os.system(("java -jar RankLib-2.1-patched.jar  -train data/train.txt -ranker {} -metric2t {} -tc {} -round {} -gmax {} -layer {} -node {} -epoch {} -kcv {} -kcvmd models/ -kcvmn {} {}").format(
+                os.system(("java -jar RankLib-2.1-patched.jar  -train data/letor.txt -ranker {} -metric2t {} -tc {} -round {} -gmax {} -layer {} -node {} -epoch {} -kcv {} -kcvmd models/ -kcvmn {} {}").format(
                     x, metric_train, tc, epoch, gmax, layers, nodes, epoch,  k_fold, save_name, silent))
             else:
                 # format: train, ranker, test, validate, metric, metric
                 save_model = (
                     "models/{}_{}_model.txt").format(ranking_models[x], metric_train)
                 save_name = ("{}_{}_model.txt").format(ranking_models[x], metric_train)
-                os.system(("java -jar RankLib-2.1-patched.jar  -train data/train.txt -ranker {} -metric2t {} -tc {} -round {} -gmax {}  -epoch {} -bag {} -tree {} -kcv {} -kcvmd models/ -kcvmn {} {}").format(
-                    x, metric_train, tc, rounds, gmax, epoch, bag_size, r_tree, k_fold, save_name, silent))
+                os.system(("java -jar RankLib-2.1-patched.jar  -train data/letor.txt -ranker {} -metric2t {} -tc {} -round {} -gmax {}  -epoch {} -tree {} -kcv {} -kcvmd models/ -kcvmn {} {}").format(
+                    x, metric_train, tc, rounds, gmax, epoch, r_tree, k_fold, save_name, silent))
             time = datetime.datetime.now()-start_time
             sys.stdout.write(str(time))
             sys.stdout.write(("\n...Finished {}\n").format(ranking_models[x]))
@@ -233,33 +207,44 @@ def ranklib(train=False, pred=False):
             write_results = (
                 "results/{}_{}_result.txt").format(ranking_models[x], metric_train)
             if(not pred): 
-                os.system(("java -jar RankLib-2.1-patched.jar -load models/f3.{}_{}_model.txt -ranker {} -test data/test.txt -metric2T {} -tc 10  > {}").format(
+                os.system(("java -jar RankLib-2.1-patched.jar -load models/f3.{}_{}_model.txt -ranker {} -test data/letor.txt -metric2T {} -tc 10  > {}").format(
                     ranking_models[x], metric_test, x, metric_test, write_results))
             if(pred):
                 os.system(("java -jar RankLib-2.1-patched.jar -load models/f3.{}_{}_model.txt -rank data/predict.txt -score results/rerank_scores/{}_{}_scores.txt").format(
                 ranking_models[x], metric_test,ranking_models[x],metric_test))
-                f = open(('results/rerank_scores/{}_{}_scores.txt').format(ranking_models[x],metric_test))
+                f = open('data/predict.txt','r')
                 lines = f.readlines()
                 f.close()
-                top_10 = []
+                docno = []
                 for line in lines:
-                    rank = float(line.split("\t")[2].strip("\n"))
-                    top_10.append(rank)
-                top_10_sorted = top_10.sort(reverse=True)
-                print(top_10)
-                print(top_10_sorted)
+                    docno.append(line.split(' ')[-1])
+
+                f = open(('results/rerank_scores/{}_{}_scores.txt').format(ranking_models[x],metric_test),'r')
+                lines = f.readlines()
+                f.close()
+                counter = 0
+                new_lines = []
+                for line in lines:
+                    line = line.strip('\n').split("\t")
+                    line.append(docno[counter].strip("\n"))
+                    new_lines.append(line)
+                    counter+=1
+                new_lines = sorted(new_lines,key=lambda line:float(line[2]),reverse=True)
+                f = open(('results/rerank_scores/{}_{}_scores.txt').format(ranking_models[x],metric_test),'w')
+                for line in new_lines:
+                    line_to_write=' '.join(line)+'\n'
+                    f.write(line_to_write)
 
         sys.stdout.write("\nFinished all the test models!\n\n")
     if(train):
-        print("train-init")
         train_models(train_model)
         rank_models(train_model,False)
+        
     if(predict):
         rank_models(pred_model, True)
 
 
-
-lucene(topdocs,lucene_train)
+lucene(topdocs,feat_extract)
 ranklib(train=model_train,pred=predict)
 
 

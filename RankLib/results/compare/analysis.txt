@@ -1,0 +1,23 @@
+Reading results/compare/baseline.ndcg.txt... 23 ranked lists [Done]
+Reading results/compare/AdaRank.ndcg.txt... 23 ranked lists [Done]
+Reading results/compare/analysis.txt... 2 ranked lists [Done]
+Reading results/compare/LambdaMART.ndcg.txt... 23 ranked lists [Done]
+Reading results/compare/MART.ndcg.txt... 23 ranked lists [Done]
+Reading results/compare/RankNet.ndcg.txt... 23 ranked lists [Done]
+
+
+Overall comparison
+------------------------------------------------------------------------
+System	Performance	Improvement	Win	Loss	p-value
+baseline.ndcg.txt [baseline]	0.2967
+AdaRank.ndcg.txt	0.2909	-0.0058 (-1.96%)	7	10	0.5766
+WARNING: [results/compare/analysis.txt] skipped: NOT comparable to the baseline due to different ranked list IDs.
+LambdaMART.ndcg.txt	0.7682	+0.4715 (+158.89%)	22	0	0.0
+MART.ndcg.txt	0.5947	+0.298 (+100.42%)	21	1	0.0
+RankNet.ndcg.txt	0.2967	0.0 (0.0%)	0	0	1.0
+
+
+Detailed break down
+------------------------------------------------------------------------
+	[ < -100%)	[-100%, -75%)	[-75%, -50%)	[-50%, -25%)	[-25%, 0%)	(0%, +25%]	(+25%, +50%]	(+50%, +75%]	(+75%, +100%]	( > +100%]
+AdaRank.ndcg.txt	0	0	0	0	10	7	0	0	0	0

@@ -132,7 +132,7 @@ public class BatchSearch {
         }
         //predict
         if(!train){
-            f = new File("../RankLib/data/predict2.txt");
+            f = new File("../RankLib/data/predict.txt");
             w = new FileWriter(f);
             bw = new BufferedWriter(w);
         }
